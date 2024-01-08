@@ -1,25 +1,31 @@
 <h1>PEN-PAL<sup>®</sup> Using Kinova Kortex </h1>
+<h2>Description</h2>
 
+<h2>Build Environment</h2>
 Steps to setup environment:
-+Clone Repository 
+
++ Clone Repository 
+
 ```sh
   git clone https://github.com/HarrisonMKG/pen-pal.git
 ```
-+Switch to Dev/Personal Branch 
+
++ Switch to Dev/Personal Branch 
 ```sh
   git checkout BRANCH_NAME
 ```
-+IF virtual environment NOT setup (./venv/ folder) 
+
++ IF virtual environment NOT setup (./venv/ folder) 
 ```sh
   python -m venv venv 
 ```
 
 You will need to do the following each time you start a new terminal
-+Activate Virtual Environment 
++ Activate Virtual Environment 
 ```sh
   source venv/Scripts/activate 
 ```
-+Install neccessary packages from Requirements.txt 
++ Install neccessary packages from Requirements.txt 
 ```sh
   pip install -r requirements.txt 
 ```
