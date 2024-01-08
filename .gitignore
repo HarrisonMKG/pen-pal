@@ -3,3 +3,4 @@ kortex_api*.zip
 api_cpp/examples/build*
 .vscode/
 __pycache__/
+*venv/
