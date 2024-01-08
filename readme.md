@@ -37,3 +37,13 @@ To stop using virtual environment python"
 
 
 Look at Kinova_Readme.md and the Readme.md file in api_cpp/examples folder for instructions how to install cMake, gcc
+
+<h2>Usage</h2>
+
+Modify "coordinates.csv" in terms of:
+
+```
+x_1,x_2,x_3,...,x_n
+y_1,y_2,y_3,...,y_n
+z_1,z_2,z_3,...,z_n
+```
