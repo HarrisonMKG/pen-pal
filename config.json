@@ -3,5 +3,6 @@
     "ip": "10.0.0.160",
     "user": "admin",
     "password": "admin"
-  }
+  },
+	"debug_file": "output.log"
 }
