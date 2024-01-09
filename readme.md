@@ -60,7 +60,7 @@ BUILD_FOLDER/EXECUTABLE_FILE.exe
 When there are changes to the files, go into the BUILD_FOLDER and run the MakeFile
 ```sh
 cd BUILD_FOLDER
-mingw32-make
+make
 ```
 
 
