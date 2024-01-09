@@ -29,10 +29,38 @@ You will need to do the following each time you start a new terminal
 ```sh
   pip install -r requirements.txt 
 ```
-
-To stop using virtual environment python"
++ Configure Conan:
 ```sh
-  deactivate 
+conan config set general.revisions_enabled=1
+
+conan profile new default --detect
+```
+
++ To stop using virtual environment python"
+```sh
+deactivate 
+```
+
+
+TO BUILD:
++ Change directory to the Examples folder (Or the top level that contains the kortex_api and utilities.cpp file)
+```sh
+cd api_cpp/examples
+```
++ Execute build script:
+```sh
+./scripts/build-mingw.bat release
+```
+
++ Run specific examples/files:
+```sh
+BUILD_FOLDER/EXECUTABLE_FILE.exe
+```
+
+When there are changes to the files, go into the BUILD_FOLDER and run the MakeFile
+```sh
+cd BUILD_FOLDER
+mingw32-make
 ```
 
 
