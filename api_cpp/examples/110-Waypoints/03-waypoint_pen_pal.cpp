@@ -101,6 +101,7 @@ void populateCartesianCoordinate(k_api::Base::CartesianWaypoint* cartesianCoordi
 bool example_trajectory(k_api::Base::BaseClient* base)
 {
     bool success = false;
+    string pattern = "Square";
     std::vector<std::vector<float>> waypointsDefinition;
     auto product = base->GetProductConfiguration();
     if(   product.model() == k_api::ProductConfiguration::MODEL_ID_L53 
@@ -118,16 +119,29 @@ bool example_trajectory(k_api::Base::BaseClient* base)
         // You may overwrite the waypointsDefinition vector by commenting the code bellow and populating it with your own
         // waypoint list information.
         ////////////////////////////////////////////////////////////////////////////////////////////////////////////////
-            const float kTheta_x = 90.0;
+            const float kTheta_x = -180.0;
             const float kTheta_y = 0.0;
             const float kTheta_z = 90.0;
-            waypointsDefinition = { {0.7f,   0.0f,  0.5f,  0.0f, kTheta_x, kTheta_y, kTheta_z},
-                                    {0.7f,   0.0f,  0.33f, 0.1f, kTheta_x, kTheta_y, kTheta_z},
-                                    {0.7f,   0.48f, 0.33f, 0.1f, kTheta_x, kTheta_y, kTheta_z},
-                                    {0.61f,  0.22f, 0.4f,  0.1f, kTheta_x, kTheta_y, kTheta_z},
-                                    {0.7f,   0.48f, 0.33f, 0.1f, kTheta_x, kTheta_y, kTheta_z},
-                                    {0.63f, -0.22f, 0.45f, 0.1f, kTheta_x, kTheta_y, kTheta_z},
-                                    {0.65f,  0.05f, 0.33f, 0.0f, kTheta_x, kTheta_y, kTheta_z}};
+            const float zHeight = 0.15f;
+            if (pattern == "Square"){
+            waypointsDefinition = { {0.5f,   0.35f,  zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    {0.25f,   0.35f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    {0.25f,   -0.35f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    {0.5f,  -0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z}};
+            }else if(pattern == "Circle"){
+            waypointsDefinition = { {0.5f,   0.01f,  zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    {0.25f,   0.20f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    {0.25f,   0.01f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    {0.5f,   -0.20f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z}};
+                   
+
+            }
+            else if(pattern == "Abstract"){
+
+            }
+            else{
+
+            }
     }
     else
     {
@@ -135,6 +149,8 @@ bool example_trajectory(k_api::Base::BaseClient* base)
         std::cout << "Product KIN is : " << product.kin() << std::endl;
         return success;
     }
+
+    std::cout <<"MADE IT"<< std::endl;
     // Make sure the arm is in Single Level Servoing before executing an Action
     auto servoingMode = k_api::Base::ServoingModeInformation();
     servoingMode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
@@ -364,6 +380,7 @@ int main(int argc, char **argv)
     success &= example_move_to_home_position(base);
     // This is a trajectory example using cartesian waypoints
     success &= example_trajectory(base);
+    std::cout <<"MADE IT again"<< std::endl;
     
     // Close API session
     session_manager->CloseSession();
