@@ -27,6 +27,21 @@ namespace k_api = Kinova::Api;
 // Maximum allowed waiting time during actions
 constexpr auto TIMEOUT_DURATION = std::chrono::seconds{60};
 
+void printException(k_api::KDetailedException& ex)
+{
+    // You can print the error informations and error codes
+    auto error_info = ex.getErrorInfo().getError();
+    std::cout << "KDetailedoption detected what:  " << ex.what() << std::endl;
+    
+    std::cout << "KError error_code: " << error_info.error_code() << std::endl;
+    std::cout << "KError sub_code: " << error_info.error_sub_code() << std::endl;
+    std::cout << "KError sub_string: " << error_info.error_sub_string() << std::endl;
+
+    // Error codes by themselves are not very verbose if you don't see their corresponding enum value
+    // You can use google::protobuf helpers to get the string enum element for every error code and sub-code 
+    std::cout << "Error code string equivalent: " << k_api::ErrorCodes_Name(k_api::ErrorCodes(error_info.error_code())) << std::endl;
+    std::cout << "Error sub-code string equivalent: " << k_api::SubErrorCodes_Name(k_api::SubErrorCodes(error_info.error_sub_code())) << std::endl;
+}
 // Create an event listener that will set the promise action event to the exit value
 // Will set promise to either END or ABORT
 // Use finish_promise_cart.get_future.get() to wait and get the value
@@ -127,14 +142,13 @@ bool example_trajectory(k_api::Base::BaseClient* base)
             waypointsDefinition = { {0.5f,   0.35f,  zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
                                     {0.25f,   0.35f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
                                     {0.25f,   -0.35f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
-                                    {0.5f,  -0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z}};
+                                    {0.5f,  -0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z}
+                                    };
             }else if(pattern == "Circle"){
-            waypointsDefinition = { {0.5f,   0.01f,  zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
-                                    {0.25f,   0.20f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
-                                    {0.25f,   0.01f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
-                                    {0.5f,   -0.20f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z}};
-                   
-
+            waypointsDefinition = { {0.5f,   0.0f,  zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    {0.4f,   0.2f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    {0.3f,   0.0f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    {0.4f,   -0.20f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z}};
             }
             else if(pattern == "Abstract"){
 
@@ -149,8 +163,6 @@ bool example_trajectory(k_api::Base::BaseClient* base)
         std::cout << "Product KIN is : " << product.kin() << std::endl;
         return success;
     }
-
-    std::cout <<"MADE IT"<< std::endl;
     // Make sure the arm is in Single Level Servoing before executing an Action
     auto servoingMode = k_api::Base::ServoingModeInformation();
     servoingMode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
@@ -187,7 +199,7 @@ bool example_trajectory(k_api::Base::BaseClient* base)
 
     // Verify validity of waypoints
     auto result = base->ValidateWaypointList(wpts);
-
+    // No error in provided trajectories
     if(result.trajectory_error_report().trajectory_error_elements_size() == 0)
     {   
         // Execute action
@@ -196,7 +208,7 @@ bool example_trajectory(k_api::Base::BaseClient* base)
             // Move arm with waypoints list
             std::cout << "Moving the arm creating a trajectory of " << waypointsDefinition.size() << " cartesian waypoints" << std::endl;
             base->ExecuteWaypointTrajectory(wpts);
-        }
+                }
         catch(k_api::KDetailedException& ex)
         {
             std::cout << "Try catch error executing normal trajectory" << std::endl;
@@ -215,6 +227,8 @@ bool example_trajectory(k_api::Base::BaseClient* base)
             return false;
         }
         // Wait for future value from promise
+        // Waits a maximum of TIMEOUT_DURATION for waypoint above to complete. If it takes longer, 
+        // goes into If statement 
         const auto cart_end_status = finish_future_cart.wait_for(TIMEOUT_DURATION);
 
         base->Unsubscribe(promise_notification_handle_cart_end);
@@ -236,8 +250,10 @@ bool example_trajectory(k_api::Base::BaseClient* base)
             auto promise_notification_handle_cart_opt = base->OnNotificationActionTopic(create_event_listener_by_promise(finish_promise_cart_opt),
                                                                                     k_api::Common::NotificationOptions());
 
-            // Execute optimized trajectory
-            wpts.set_use_optimal_blending(true);
+            // Execute optimized trajectory 
+            // turned off to get more accurate readings for specific shapes with sharp edges
+            wpts.set_use_optimal_blending(false);
+
             try
             {
                 base->ExecuteWaypointTrajectory(wpts);
@@ -259,7 +275,26 @@ bool example_trajectory(k_api::Base::BaseClient* base)
                 std::cout << "Error sub-code string equivalent: " << k_api::SubErrorCodes_Name(k_api::SubErrorCodes(error_info.error_sub_code())) << std::endl;
                 return false;
             }
-            
+            // Current arm's joint angles
+            k_api::Base::JointAngles input_joint_angles;
+            try
+            {
+                std::cout << "Getting Angles for every joint..." << std::endl;
+                input_joint_angles = base->GetMeasuredJointAngles();
+            }
+            catch (k_api::KDetailedException& ex)
+            {
+                std::cout << "Unable to get joint angles" << std::endl;
+                printException(ex);
+                return false;
+            }
+
+            std::cout << "Joint ID : Joint Angle" << std::endl;
+            for (auto joint_angle : input_joint_angles.joint_angles()) 
+            {
+                std::cout << joint_angle.joint_identifier() << " : " << joint_angle.value() << std::endl;
+            }
+            std::cout << std::endl;
 
             // Wait for future value from promise
             const auto cart_status = finish_future_cart_opt.wait_for(TIMEOUT_DURATION);
