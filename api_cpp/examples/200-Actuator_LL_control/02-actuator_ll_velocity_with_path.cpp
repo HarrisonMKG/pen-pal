@@ -44,8 +44,8 @@ namespace k_api = Kinova::Api;
 
 #define DURATION 15             // Network timeout (seconds)
 
-float velocity_large = 10.0f;         // Default velocity of the actuator (degrees per seconds)
-float velocity_small = 15.0f;         // Default velocity of the actuator (degrees per seconds)
+float velocity_large = 20.0f;         // Default velocity of the actuator (degrees per seconds)
+float velocity_small = 10.0f;         // Default velocity of the actuator (degrees per seconds)
 float time_duration = DURATION; // Duration of the example (seconds)
 
 // Waiting time during actions
@@ -187,7 +187,13 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
             // We are printing the data of the moving actuator just for the example purpose,
             // avoid this in a real-time loop
             std::string serialized_data;
-            google::protobuf::util::MessageToJsonString(data.actuators(data.actuators_size() - 1), &serialized_data);
+            std::string output_data; 
+            serialized_data = serialized_data.append("Joint[0]");
+            google::protobuf::util::MessageToJsonString(data.actuators(0), &serialized_data);
+            serialized_data = serialized_data.append("\nJoint[1]");
+            google::protobuf::util::MessageToJsonString(data.actuators(1), &serialized_data);
+            serialized_data = serialized_data.append("\nJoint[2]");
+            google::protobuf::util::MessageToJsonString(data.actuators(2), &serialized_data);
             std::cout << serialized_data << std::endl << std::endl;
         };
 
@@ -207,18 +213,29 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                 {
                         commands[i] += (0.001f * velocity_small);
                 }
-                        dest_angles[0] += (325.551f);
-                        dest_angles[1] += (59.2881f);
-                        dest_angles[2] += (294.432f);
-                        dest_angles[3] += (178.533f);
-                        dest_angles[4] += (54.9385f);
-                        dest_angles[5] += (235.541f);
-                        for(int i = 0; i < actuator_count; i++)
-                        {
-                    	    base_command.mutable_actuators(i)->set_position(fmod(commands[i], dest_angles[i]));
-                        }
+                        base_command.mutable_actuators(0)->set_position(fmod(commands[0], 310.551f));
+                        // base_command.mutable_actuators(1)->set_position(fmod(commands[1],59.2881f));
+                        // base_command.mutable_actuators(2)->set_position(fmod(commands[2], 294.432f));
+                        // base_command.mutable_actuators(3)->set_position(fmod(commands[3], 178.533f));
+                        // base_command.mutable_actuators(4)->set_position(fmod(commands[4], 54.9385f));
+                        // base_command.mutable_actuators(5)->set_position(fmod(commands[5], 235.541f));
+                        // std::cout << "b4 issue" << std::endl;
+                        // dest_angles[0] = (325.551f);
+                        // std::cout << "after issue" << std::endl;
+                        // dest_angles[1] = (59.2881f);
+                        // dest_angles[2] = (294.432f);
+                        // dest_angles[3] = (178.533f);
+                        // dest_angles[4] = (54.9385f);
+                        // dest_angles[5] = (235.541f);
+                        // std::cout << "Check dest" << std::endl;
+                        // for(int i = 0; i < actuator_count; i++)
+                        // {
+                        //     std::cout << "Check 3" << std::endl;
+                    	//     base_command.mutable_actuators(i)->set_position(fmod(commands[i], dest_angles[i]));
+                        // }
                 try
                 {
+                    std::cout << "Running" << std::endl;
                     base_cyclic->Refresh_callback(base_command, lambda_fct_callback, 0);
                 }
                 catch(...)
