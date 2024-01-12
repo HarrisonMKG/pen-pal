@@ -154,7 +154,11 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     k_api::BaseCyclic::Command  base_command;
 
     std::vector<float> commands;
-    std::vector<float> dest_angles;
+    std::vector<float> target_joint_angles = {325.551, 59.2881, 294.432, 178.533, 54.9385, 235.541};
+    std::vector<float> velocity_commands(6, 0.0f);
+
+    float position_tolerance = 0.1;
+    float gain = 0.1f;
 
     auto servoingMode = k_api::Base::ServoingModeInformation();
 
@@ -196,43 +200,61 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
             google::protobuf::util::MessageToJsonString(data.actuators(2), &serialized_data);
             std::cout << serialized_data << std::endl << std::endl;
         };
-
+        bool target_reached = false;
         // Real-time loop
-        while(timer_count < (time_duration * 1000))
+        while(timer_count < (time_duration * 1000)|| !target_reached)
         {
             now = GetTickUs();
-            if(now - last > 1000)
+            if(now - last > 1000 )
             {
-                // Move only the last actuator to prevent collision
-                // Motor velocity in [i][0] intended angle[i][1]
-                    for(int i = 0; i < actuator_count/2; i++)
-                {
-                        commands[i] += (0.001f * velocity_large);
-                }
-                for(int i = actuator_count/2; i < actuator_count; i++)
-                {
-                        commands[i] += (0.001f * velocity_small);
-                }
-                        base_command.mutable_actuators(0)->set_position(fmod(commands[0], 310.551f));
-                        // base_command.mutable_actuators(1)->set_position(fmod(commands[1],59.2881f));
-                        // base_command.mutable_actuators(2)->set_position(fmod(commands[2], 294.432f));
-                        // base_command.mutable_actuators(3)->set_position(fmod(commands[3], 178.533f));
-                        // base_command.mutable_actuators(4)->set_position(fmod(commands[4], 54.9385f));
-                        // base_command.mutable_actuators(5)->set_position(fmod(commands[5], 235.541f));
-                        // std::cout << "b4 issue" << std::endl;
-                        // dest_angles[0] = (325.551f);
-                        // std::cout << "after issue" << std::endl;
-                        // dest_angles[1] = (59.2881f);
-                        // dest_angles[2] = (294.432f);
-                        // dest_angles[3] = (178.533f);
-                        // dest_angles[4] = (54.9385f);
-                        // dest_angles[5] = (235.541f);
-                        // std::cout << "Check dest" << std::endl;
-                        // for(int i = 0; i < actuator_count; i++)
-                        // {
-                        //     std::cout << "Check 3" << std::endl;
-                    	//     base_command.mutable_actuators(i)->set_position(fmod(commands[i], dest_angles[i]));
-                        // }
+                base_feedback = base_cyclic->RefreshFeedback();
+                    for(int i = 0; i < actuator_count-1; i++)
+                        {   
+                        float current_pos = base_feedback.actuators(i).position();
+                        float target_pos = target_joint_angles[i];
+                        float position_error = target_joint_angles[i] - base_feedback.actuators(i).position();
+                        float new_position = 0;
+                        // velocity_commands[i] = position_error * gain;
+                        target_reached = true;
+                        if (std::abs(target_pos-360)>std::abs(target_pos) || (i != 0 && i != 3 && i != 5)){
+                            if (std::abs(position_error) > position_tolerance) {
+                                target_reached = false;
+                                 if (position_error > 10.0f ){
+                                    if(i != 0 && i != 1 && i != 2){
+                                        new_position = current_pos + 0.01*50.0f;
+                                    }else{
+                                        new_position = current_pos + 0.01*20.0f;
+                                    }
+                                   
+                                }else{
+                                    if(i != 0 && i != 1 && i != 2){
+                                        new_position = current_pos + 0.01*10.0f;
+                                    }else{
+                                        new_position = current_pos + 0.01*5.0f;
+                                    }
+                                }
+                                base_command.mutable_actuators(i)->set_position(new_position);
+                            } 
+                        }else{
+                            if (std::abs(position_error) > position_tolerance) {
+                                target_reached = false;
+                                if (position_error > 10.0f ){
+                                    if(i != 0 && i != 1 && i != 2){
+                                        new_position = current_pos - 0.01*50.0f;
+                                    }else{
+                                        new_position = current_pos - 0.01*20.0f;
+                                    }
+                                }else{
+                                    if(i != 0 && i != 1 && i != 2){
+                                        new_position = current_pos - 0.01*10.0f;
+                                    }else{
+                                        new_position = current_pos - 0.01*5.0f;
+                                    } 
+                                }
+                                base_command.mutable_actuators(i)->set_position(new_position);
+                            } 
+                        } 
+                        }
                 try
                 {
                     std::cout << "Running" << std::endl;
