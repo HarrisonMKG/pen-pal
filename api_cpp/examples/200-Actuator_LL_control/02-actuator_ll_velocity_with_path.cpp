@@ -222,42 +222,43 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                         float current_pos = base_feedback.actuators(i).position();
                         float target_pos = target_joint_angles[stage][i];
                         float position_error = target_joint_angles[stage][i] - base_feedback.actuators(i).position();
-                        // if ((position_error < 360 +target_joint_angles[stage][i] - base_feedback.actuators(i).position())&&(i == 0 || i == 3 || i == 5)) {
-                        //     position_error = -position_error;
-                        // }
+
                         float new_position = 0;
                         // velocity_commands[i] = position_error * gain;
-                        
-                        if (std::abs(target_pos-360)>std::abs(target_pos) || (i != 0 && i != 3 && i != 5)){
                             if (std::abs(position_error) > position_tolerance) {
                                  if (std::abs(position_error) > 10.0f ){
                                     if(i != 0 && i != 1 && i != 2){
+                                        //if the motors cant go full 360
                                         if(position_error > 0.0f){
-                                            new_position = current_pos + 0.01*50.0f;
+                                            new_position = current_pos + 0.01*60.0f;
                                         }else{
-                                            new_position = current_pos - 0.01*50.0f;
+                                            new_position = current_pos - 0.01*60.0f;
                                         }
                                         
                                     }else{
+                                        //if motors can go full 360 with roll over protection for base
                                          if(position_error > 0.0f || (i == 0 && (abs(position_error) > 360 +target_joint_angles[stage][i] - base_feedback.actuators(i).position()))){
-                                        new_position = current_pos + 0.01*20.0f;
+                                        new_position = current_pos + 0.01*30.0f;
                                          }else{
-                                        new_position = current_pos - 0.01*20.0f;
+                                        new_position = current_pos - 0.01*30.0f;
                                          }
                                     }
                                    
                                 }else{
+                                    //slows down because were in threshold area
                                     if(i != 0 && i != 1 && i != 2){
+                                        //speed limit for smaller motors
                                         if(position_error > 0.0f){
                                         new_position = current_pos + 0.01*10.0f;
                                         }else{
                                         new_position = current_pos - 0.01*10.0f;
                                         }
                                     }else{
+                                        //speed limits for bigger motor
                                         if(position_error > 0.0f){
-                                        new_position = current_pos + 0.01*5.0f;
+                                        new_position = current_pos + 0.01*10.0f;
                                         }else{
-                                        new_position = current_pos - 0.01*5.0f;    
+                                        new_position = current_pos - 0.01*10.0f;    
                                         }
                                     }
                                 }
@@ -265,26 +266,6 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                             }else{
                                 atPosition++;
                             } 
-                        }else{
-                            if (std::abs(position_error) > position_tolerance) {
-                                if (std::abs(position_error) > 10.0f ){
-                                    if(i != 0 && i != 1 && i != 2){
-                                        new_position = current_pos - 0.01*50.0f;
-                                    }else{
-                                        new_position = current_pos - 0.01*20.0f;
-                                    }
-                                }else{
-                                    if(i != 0 && i != 1 && i != 2){
-                                        new_position = current_pos - 0.01*10.0f;
-                                    }else{
-                                        new_position = current_pos - 0.01*5.0f;
-                                    } 
-                                }
-                                base_command.mutable_actuators(i)->set_position(new_position);
-                            }else{
-                                atPosition++;
-                            } 
-                        } 
                         }
                 if(atPosition == 5){
                     stage++;
