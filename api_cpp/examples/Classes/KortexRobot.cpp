@@ -12,42 +12,19 @@
 * Refer to the LICENSE file for details.
 *
 */
-#include <cstdlib>
-#include <iostream>
-#include <string>
-#include <vector>
-#include <math.h>
-#include <KortexRobot.h>
+#include "KortexRobot.h"
 
-#if defined(_MSC_VER)
-#include <Windows.h>
-#else
-#include <unistd.h>
-#endif
-#include <time.h>
 
 namespace k_api = Kinova::Api;
 
-#define PORT 10000
-#define PORT_RT 10001
-
-class KortexRobot
+KortexRobot::KortexRobot(const std::string& ip_address)
 {
-private:
-    /* data */
-public:
-    KortexRobot(const std::string& ip_address);
-    ~KortexRobot();
-
-    k_api::TransportClientTcp()
-};
-
-KortexRobot::KortexRobot(/* args */)
-{
+	//Constructor
 }
 
 KortexRobot::~KortexRobot()
 {
+	//Destructor
 }
 
 std::vector<std::vector<int>> read_csv(const std::string& filename) {

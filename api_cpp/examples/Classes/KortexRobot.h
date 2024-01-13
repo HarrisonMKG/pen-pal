@@ -19,7 +19,7 @@ private:
     /* data */
 
 public:
-    KortexRobot(/* args */);
+    KortexRobot(const std::string& ip_address);
     ~KortexRobot();
 
     std::vector<std::vector<int>> read_csv(const std::string &filename);
