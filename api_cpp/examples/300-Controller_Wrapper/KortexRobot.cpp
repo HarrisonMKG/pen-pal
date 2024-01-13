@@ -12,7 +12,7 @@
 * Refer to the LICENSE file for details.
 *
 */
-#include "100-Kortex_Robot_Controller.hpp"
+#include "KortexRobot.hpp"
 
 
 namespace k_api = Kinova::Api;
