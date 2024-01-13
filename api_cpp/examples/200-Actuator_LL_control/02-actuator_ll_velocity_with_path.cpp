@@ -154,7 +154,7 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     k_api::BaseCyclic::Command  base_command;
 
     std::vector<float> commands;
-    std::vector<float> target_joint_angles = {325.551, 59.2881, 294.432, 178.533, 54.9385, 235.541};
+    std::vector<vector<float>> target_joint_angles = {{325.551, 59.2881, 294.432, 178.533, 54.9385, 235.541},{305.869,42.0627,251.539,177.517,29.3456,216.948},{54.8453,42.3845,251.666,177.292,29.2051,326.074},{35.5099,59.507,294.507,178.444,54.8327,305.565}};
     std::vector<float> velocity_commands(6, 0.0f);
 
     float position_tolerance = 0.1;
@@ -198,47 +198,76 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
             google::protobuf::util::MessageToJsonString(data.actuators(1), &serialized_data);
             serialized_data = serialized_data.append("\nJoint[2]");
             google::protobuf::util::MessageToJsonString(data.actuators(2), &serialized_data);
+            serialized_data = serialized_data.append("\nJoint[3]");
+            google::protobuf::util::MessageToJsonString(data.actuators(3), &serialized_data);
+            serialized_data = serialized_data.append("\nJoint[4]");
+            google::protobuf::util::MessageToJsonString(data.actuators(4), &serialized_data);
+            serialized_data = serialized_data.append("\nJoint[5]");
+            google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
             std::cout << serialized_data << std::endl << std::endl;
         };
         bool target_reached = false;
+        int stage = 0;
+        int atPosition = 0;
         // Real-time loop
-        while(timer_count < (time_duration * 1000)|| !target_reached)
+        while(timer_count < (time_duration * 1000))
         {
             now = GetTickUs();
             if(now - last > 1000 )
             {
                 base_feedback = base_cyclic->RefreshFeedback();
+                atPosition = 0;
                     for(int i = 0; i < actuator_count-1; i++)
                         {   
                         float current_pos = base_feedback.actuators(i).position();
-                        float target_pos = target_joint_angles[i];
-                        float position_error = target_joint_angles[i] - base_feedback.actuators(i).position();
+                        float target_pos = target_joint_angles[stage][i];
+                        float position_error = target_joint_angles[stage][i] - base_feedback.actuators(i).position();
+                        // if ((position_error < 360 +target_joint_angles[stage][i] - base_feedback.actuators(i).position())&&(i == 0 || i == 3 || i == 5)) {
+                        //     position_error = -position_error;
+                        // }
                         float new_position = 0;
                         // velocity_commands[i] = position_error * gain;
-                        target_reached = true;
+                        
                         if (std::abs(target_pos-360)>std::abs(target_pos) || (i != 0 && i != 3 && i != 5)){
                             if (std::abs(position_error) > position_tolerance) {
-                                target_reached = false;
-                                 if (position_error > 10.0f ){
+                                 if (std::abs(position_error) > 10.0f ){
                                     if(i != 0 && i != 1 && i != 2){
-                                        new_position = current_pos + 0.01*50.0f;
+                                        if(position_error > 0.0f){
+                                            new_position = current_pos + 0.01*50.0f;
+                                        }else{
+                                            new_position = current_pos - 0.01*50.0f;
+                                        }
+                                        
                                     }else{
+                                         if(position_error > 0.0f || (i == 0 && (abs(position_error) > 360 +target_joint_angles[stage][i] - base_feedback.actuators(i).position()))){
                                         new_position = current_pos + 0.01*20.0f;
+                                         }else{
+                                        new_position = current_pos - 0.01*20.0f;
+                                         }
                                     }
                                    
                                 }else{
                                     if(i != 0 && i != 1 && i != 2){
+                                        if(position_error > 0.0f){
                                         new_position = current_pos + 0.01*10.0f;
+                                        }else{
+                                        new_position = current_pos - 0.01*10.0f;
+                                        }
                                     }else{
+                                        if(position_error > 0.0f){
                                         new_position = current_pos + 0.01*5.0f;
+                                        }else{
+                                        new_position = current_pos - 0.01*5.0f;    
+                                        }
                                     }
                                 }
                                 base_command.mutable_actuators(i)->set_position(new_position);
+                            }else{
+                                atPosition++;
                             } 
                         }else{
                             if (std::abs(position_error) > position_tolerance) {
-                                target_reached = false;
-                                if (position_error > 10.0f ){
+                                if (std::abs(position_error) > 10.0f ){
                                     if(i != 0 && i != 1 && i != 2){
                                         new_position = current_pos - 0.01*50.0f;
                                     }else{
@@ -252,12 +281,21 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                                     } 
                                 }
                                 base_command.mutable_actuators(i)->set_position(new_position);
+                            }else{
+                                atPosition++;
                             } 
                         } 
                         }
+                if(atPosition == 5){
+                    stage++;
+                    std::cout << "finished stage: " <<stage << std::endl << std::endl;
+                    
+                }
+                if(stage == 4){
+                    timeout++;
+                }
                 try
                 {
-                    std::cout << "Running" << std::endl;
                     base_cyclic->Refresh_callback(base_command, lambda_fct_callback, 0);
                 }
                 catch(...)
