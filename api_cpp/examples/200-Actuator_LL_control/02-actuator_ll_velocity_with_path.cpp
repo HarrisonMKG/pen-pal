@@ -51,6 +51,107 @@ float time_duration = DURATION; // Duration of the example (seconds)
 // Waiting time during actions
 const auto ACTION_WAITING_TIME = std::chrono::seconds(1);
 
+void printException(k_api::KDetailedException& ex)
+{
+    // You can print the error informations and error codes
+    auto error_info = ex.getErrorInfo().getError();
+    std::cout << "KDetailedoption detected what:  " << ex.what() << std::endl;
+    
+    std::cout << "KError error_code: " << error_info.error_code() << std::endl;
+    std::cout << "KError sub_code: " << error_info.error_sub_code() << std::endl;
+    std::cout << "KError sub_string: " << error_info.error_sub_string() << std::endl;
+
+    // Error codes by themselves are not very verbose if you don't see their corresponding enum value
+    // You can use google::protobuf helpers to get the string enum element for every error code and sub-code 
+    std::cout << "Error code string equivalent: " << k_api::ErrorCodes_Name(k_api::ErrorCodes(error_info.error_code())) << std::endl;
+    std::cout << "Error sub-code string equivalent: " << k_api::SubErrorCodes_Name(k_api::SubErrorCodes(error_info.error_sub_code())) << std::endl;
+}
+
+std::vector<vector<float>>
+convert_points_to_angles(k_api::Base::BaseClient* base, std::vector<vector<float>> target_points)
+{   
+    std::vector<vector<float>> final_joint_angles;
+    k_api::Base::JointAngles input_joint_angles;
+
+    try
+    {
+        input_joint_angles = base->GetMeasuredJointAngles();
+    }
+    catch (k_api::KDetailedException& ex)
+    {
+        std::cout << "Unable to get current robot pose" << std::endl;
+        printException(ex);
+        return final_joint_angles;
+    }
+
+    for (std::vector<float> current_target : target_points) 
+    {
+
+        // Object containing cartesian coordinates and Angle Guess
+        k_api::Base::IKData input_IkData; 
+        
+        // Fill the IKData Object with the cartesian coordinates that need to be converted
+        input_IkData.mutable_cartesian_pose()->set_x(current_target[0]);
+        input_IkData.mutable_cartesian_pose()->set_y(current_target[1]);
+        input_IkData.mutable_cartesian_pose()->set_z(current_target[2]);
+        input_IkData.mutable_cartesian_pose()->set_theta_x(-180.0);
+        input_IkData.mutable_cartesian_pose()->set_theta_y(0.0);
+        input_IkData.mutable_cartesian_pose()->set_theta_z(90.0);
+
+        // Fill the IKData Object with the guessed joint angles
+        Kinova::Api::Base::JointAngle* jAngle; 
+        for(auto joint_angle : input_joint_angles.joint_angles())
+        {
+            jAngle = input_IkData.mutable_guess()->add_joint_angles();
+            // '- 1' to generate an actual "guess" for current joint angles
+            jAngle->set_value(joint_angle.value() - 1); 
+        }
+
+
+        // Computing Inverse Kinematics (cartesian -> Angle convert) from arm's current pose and joint angles guess
+        k_api::Base::JointAngles computed_joint_angles;
+        try
+        {
+            computed_joint_angles = base->ComputeInverseKinematics(input_IkData);
+        }
+        catch (k_api::KDetailedException& ex)
+        {
+            std::cout << "Unable to compute inverse kinematics" << std::endl;
+            printException(ex);
+            return final_joint_angles;
+        }
+
+        std::cout << "Joint ID : Joint Angle" << std::endl;
+        int joint_identifier = 0;
+        std::vector<float> temp_joints(6, 0.0f);
+        // Kinova::Api::Base::JointAngle* hAngle; 
+
+        for (auto joint_angle : computed_joint_angles.joint_angles()) 
+        {
+            
+            float temp_value = joint_angle.value();
+            temp_joints[joint_identifier] = joint_angle.value();
+            std::cout << joint_identifier << " : " << joint_angle.value() << std::endl;
+
+            joint_identifier++;
+        }
+        final_joint_angles.push_back(temp_joints);
+    }
+    int num_points = final_joint_angles.size();
+    for (int section = 0; section != num_points ;section++)
+    {
+        for (int rotator = 0; rotator != 6; rotator++){
+            final_joint_angles[section][rotator] = fmod(final_joint_angles[section][rotator], 360.0);
+            if (final_joint_angles[section][rotator] < 0.0) {
+                final_joint_angles[section][rotator] = final_joint_angles[section][rotator] + 360;
+            }
+        }
+    }
+    
+    return final_joint_angles;
+}
+
+
 // Create closure to set finished to true after an END or an ABORT
 std::function<void(k_api::Base::ActionNotification)> 
 check_for_end_or_abort(bool& finished)
@@ -149,9 +250,40 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
 
     // Move arm to ready position
     example_move_to_home_position(base);
+
+    const float kTheta_x = -180.0;
+    const float kTheta_y = 0.0;
+    const float kTheta_z = 90.0;
+    const float zHeight = 0.15f;
+    std::vector<std::vector<float>> waypointsDefinition;
+    std::vector<vector<float>> target_joint_angles_IK;
+    waypointsDefinition = { {0.5f,   0.35f,  zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z}
+                            // {0.25f,   0.35f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                            // {0.25f,   -0.35f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                            // {0.5f,  -0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z}
+                            };
+    
+    target_joint_angles_IK = convert_points_to_angles(base, waypointsDefinition);
+    std::cout << "Completed Move to Home and converted Points" << std::endl;
+    int indx = 0;
+   
+
+    for (auto waypointAngles: target_joint_angles_IK)
+    {
+        std::cout << "Point:" << indx << std::endl;
+
+        for (auto currAngle: waypointAngles){
+            std::cout << currAngle << ", ";
+        }
+        std::cout << std::endl;
+    }
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+     //return true;
     
     k_api::BaseCyclic::Feedback base_feedback;
     k_api::BaseCyclic::Command  base_command;
+
+    
 
     std::vector<float> commands;
     std::vector<vector<float>> target_joint_angles = {
@@ -163,7 +295,7 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     std::vector<float> velocity_commands(6, 0.0f);
 
     float position_tolerance = 0.1;
-    float gain = 0.1f;
+    // float gain = 0.1f;
 
     auto servoingMode = k_api::Base::ServoingModeInformation();
 
@@ -211,7 +343,7 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
             google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
             std::cout << serialized_data << std::endl << std::endl;
         };
-        bool target_reached = false;
+        // bool target_reached = false;
         int stage = 0;
         int atPosition = 0;
         // Real-time loop
@@ -225,7 +357,7 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                     for(int i = 0; i < actuator_count-1; i++)
                         {   
                         float current_pos = base_feedback.actuators(i).position();
-                        float target_pos = target_joint_angles[stage][i];
+                        // float target_pos = target_joint_angles[stage][i];
                         float position_error = target_joint_angles[stage][i] - base_feedback.actuators(i).position();
 
                         float new_position = 0;
