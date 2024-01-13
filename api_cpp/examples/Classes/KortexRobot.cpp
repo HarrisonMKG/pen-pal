@@ -49,3 +49,36 @@ KortexRobot::KortexRobot(/* args */)
 KortexRobot::~KortexRobot()
 {
 }
+
+std::vector<std::vector<int>> read_csv(const std::string& filename) {
+    std::vector<std::vector<int>> result;
+
+    std::ifstream file(filename);
+    if (!file.is_open()) {
+        std::cerr << "Error opening file: " << filename << std::endl;
+        return result;
+    }
+
+    std::string line;
+    while (std::getline(file, line)) {
+        std::stringstream ss(line);
+        std::vector<int> row;
+        std::string cell;
+
+        while (std::getline(ss, cell, ',')) {
+            try {
+                int value = std::stoi(cell);
+                row.push_back(value);
+            } catch (const std::invalid_argument& e) {
+                std::cerr << "Invalid number format in line: " << line << std::endl;
+                // Handle the error or skip the invalid value
+            }
+        }
+
+        result.push_back(row);
+    }
+
+    file.close();
+
+    return result;
+}

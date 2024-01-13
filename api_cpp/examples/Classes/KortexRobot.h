@@ -18,10 +18,8 @@ protected:
 
 };
 
-KortexRobot::KortexRobot(/* args */)
-{
-}
+KortexRobot::KortexRobot(/* args */);
 
-KortexRobot::~KortexRobot()
-{
-}
+KortexRobot::~KortexRobot();
+
+std::vector<std::vector<int>> read_csv(const std::string& filename);
