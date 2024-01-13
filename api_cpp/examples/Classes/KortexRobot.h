@@ -1,11 +1,13 @@
 // KortexRobot.h
-#ifdef KORTEX_ROBOT_H
+#ifndef KORTEX_ROBOT_H
 #define KORTEX_ROBOT_H
 
 #include <iostream>
 #include <string>
 #include <vector>
-#include <math.h>
+#include <cmath>
+#include <fstream>
+#include <sstream>
 
 #define PORT 10000
 #define PORT_RT 10001
