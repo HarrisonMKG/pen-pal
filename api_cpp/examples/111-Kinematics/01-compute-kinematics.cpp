@@ -91,7 +91,9 @@ bool example_inverse_kinematics(k_api::Base::BaseClient* base)
     try
     {
         input_joint_angles = base->GetMeasuredJointAngles();
-        pose = base->ComputeForwardKinematics(input_joint_angles);
+        // pose = base->ComputeForwardKinematics(input_joint_angles);
+        // std::cout << pose << std::endl;
+
     }
     catch (k_api::KDetailedException& ex)
     {
@@ -99,6 +101,15 @@ bool example_inverse_kinematics(k_api::Base::BaseClient* base)
         printException(ex);
         return false;
     }
+    // Create pose object
+    // Set to desired position
+    pose.set_x(0.436);
+    pose.set_y(0.248);
+    pose.set_z(0.429);
+    // These should stay consistent
+    pose.set_theta_x(-180.0);
+    pose.set_theta_y(0.0);
+    pose.set_theta_z(90.0);
 
     // Object containing cartesian coordinates and Angle Guess
     k_api::Base::IKData input_IkData; 

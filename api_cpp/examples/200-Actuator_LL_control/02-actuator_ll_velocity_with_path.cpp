@@ -154,7 +154,12 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     k_api::BaseCyclic::Command  base_command;
 
     std::vector<float> commands;
-    std::vector<vector<float>> target_joint_angles = {{325.551, 59.2881, 294.432, 178.533, 54.9385, 235.541},{305.869,42.0627,251.539,177.517,29.3456,216.948},{54.8453,42.3845,251.666,177.292,29.2051,326.074},{35.5099,59.507,294.507,178.444,54.8327,305.565}};
+    std::vector<vector<float>> target_joint_angles = {
+                                                        {325.551, 59.2881, 294.432, 178.533, 54.9385, 235.541},
+                                                        {305.869,42.0627,251.539,177.517,29.3456,216.948},
+                                                        {54.8453,42.3845,251.666,177.292,29.2051,326.074},
+                                                        {35.5099,59.507,294.507,178.444,54.8327,305.565}
+                                                    };
     std::vector<float> velocity_commands(6, 0.0f);
 
     float position_tolerance = 0.1;
