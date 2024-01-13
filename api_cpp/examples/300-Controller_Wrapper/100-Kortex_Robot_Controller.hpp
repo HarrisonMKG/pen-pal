@@ -1,6 +1,6 @@
 // KortexRobot.h
-#ifndef KORTEX_ROBOT_H
-#define KORTEX_ROBOT_H
+#ifndef KORTEX_ROBOT_HPP
+#define KORTEX_ROBOT_HPP
 
 #include <iostream>
 #include <string>
@@ -28,5 +28,5 @@ protected:
     std::string ip_address;
 };
 
-#endif // KORTEX_ROBOT_H
+#endif // KORTEX_ROBOT_HPP
 
