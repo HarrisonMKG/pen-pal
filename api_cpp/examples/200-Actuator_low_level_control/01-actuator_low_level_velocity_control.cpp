@@ -153,6 +153,11 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     k_api::BaseCyclic::Command  base_command;
 
     std::vector<float> commands;
+    std::vector<float> target_joint_angles = {297.37, 24.56, 246.45, 290.95, 71.28, 129.71};
+    std::vector<float> velocity_commands(6, 0.0f);
+
+    float position_tolerance = 0.1;
+    float gain = 0.1f;
 
     auto servoingMode = k_api::Base::ServoingModeInformation();
 
@@ -161,50 +166,57 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     int64_t last = 0;
 
     int timeout = 0;
+    int actuator_count = base->GetActuatorCount().count();
 
     std::cout << "Initializing the arm for velocity low-level control example" << std::endl;
+    // Define the callback function used in Refresh_callback
+    auto lambda_fct_callback = [](const Kinova::Api::Error &err, const k_api::BaseCyclic::Feedback data)
+    {
+        // We are printing the data of the moving actuator just for the example purpose,
+        // avoid this in a real-time loop
+        std::string serialized_data;
+        google::protobuf::util::MessageToJsonString(data.actuators(data.actuators_size() - 1), &serialized_data);
+        std::cout << serialized_data << std::endl << std::endl;
+    };
     try
     {
         // Set the base in low-level servoing mode
         servoingMode.set_servoing_mode(k_api::Base::ServoingMode::LOW_LEVEL_SERVOING);
         base->SetServoingMode(servoingMode);
+        
         base_feedback = base_cyclic->RefreshFeedback();
 
-        int actuator_count = base->GetActuatorCount().count();
-
+        bool target_reached = false;
         // Initialize each actuator to its current position
         for(int i = 0; i < actuator_count; i++)
         {
-            commands.push_back(base_feedback.actuators(i).position());
             base_command.add_actuators()->set_position(base_feedback.actuators(i).position());
         }
 
-        // Define the callback function used in Refresh_callback
-        auto lambda_fct_callback = [](const Kinova::Api::Error &err, const k_api::BaseCyclic::Feedback data)
-        {
-            // We are printing the data of the moving actuator just for the example purpose,
-            // avoid this in a real-time loop
-            std::string serialized_data;
-            google::protobuf::util::MessageToJsonString(data.actuators(data.actuators_size() - 1), &serialized_data);
-            std::cout << serialized_data << std::endl << std::endl;
-        };
-
         // Real-time loop
-        while(timer_count < (time_duration * 1000))
+        while(timer_count < (time_duration * 1000) || !target_reached)
         {
             now = GetTickUs();
             if(now - last > 1000)
             {
+                base_feedback = base_cyclic->RefreshFeedback();
                 for(int i = 0; i < actuator_count; i++)
                 {
-                    // Move only the last actuator to prevent collision
-        		    if(i == actuator_count - 1)
-        		    {
-                        commands[i] += (0.001f * velocity);
-                    	base_command.mutable_actuators(i)->set_position(fmod(commands[i], 360.0f));
-        		    }
-                }
+                    float current_pos = base_feedback.actuators(i).position();
+                    float target_pos = target_joint_angles[i];
+                    float position_error = target_joint_angles[i] - base_feedback.actuators(i).position();
+                    // velocity_commands[i] = position_error * gain;
+                    target_reached = true;
+                    if (std::abs(position_error) > position_tolerance) {
+                        target_reached = false;
 
+                        float new_position = current_pos + position_error/1000.0;
+
+                        base_command.mutable_actuators(i)->set_position(new_position);
+                    }  
+                }
+                
+                // get & print feedback
                 try
                 {
                     base_cyclic->Refresh_callback(base_command, lambda_fct_callback, 0);
@@ -246,7 +258,6 @@ int main(int argc, char **argv)
 
     // Create API objects
     auto error_callback = [](k_api::KError err){ cout << "_________ callback error _________" << err.toString(); };
-    
     auto transport = new k_api::TransportClientTcp();
     auto router = new k_api::RouterClient(transport, error_callback);
     transport->connect(parsed_args.ip_address, PORT);
