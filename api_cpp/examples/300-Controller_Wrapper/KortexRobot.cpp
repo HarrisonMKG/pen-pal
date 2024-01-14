@@ -1,3 +1,29 @@
+#include <iostream>
+#include <string>
+#include <vector>
+#include <cmath>
+#include <fstream>
+#include <sstream>
+
+#include <KDetailedException.h>
+
+#include <BaseClientRpc.h>
+#include <BaseCyclicClientRpc.h>
+#include <SessionClientRpc.h>
+#include <SessionManager.h>
+
+#include <RouterClient.h>
+#include <TransportClientTcp.h>
+#include <TransportClientUdp.h>
+
+#include <google/protobuf/util/json_util.h>
+
+#include "utilities.h"
+
+#define PORT 10000
+#define PORT_RT 10001
+using namespace std;
+
 // TODO: Check if we need to modify/delete the license below since the structure
 //       of our code will likely resemble the examples in their repo and video
 
@@ -12,50 +38,52 @@
 * Refer to the LICENSE file for details.
 *
 */
-#include "KortexRobot.hpp"
-
-
 namespace k_api = Kinova::Api;
-
-KortexRobot::KortexRobot(const std::string& ip_address)
+class KortexRobot
 {
-	//Constructor
-}
+	private:
 
-KortexRobot::~KortexRobot()
-{
-	//Destructor
-}
+	public:
+	KortexRobot(const std::string& ip_address)
+	{
+		//Constructor
+	}
 
-std::vector<std::vector<int>> read_csv(const std::string& filename) {
-    std::vector<std::vector<int>> result;
+	~KortexRobot()
+	{
+		//Destructor
+	}
 
-    std::ifstream file(filename);
-    if (!file.is_open()) {
-        std::cerr << "Error opening file: " << filename << std::endl;
-        return result;
-    }
+	std::vector<std::vector<float>> read_csv(const std::string& filename) {
+		std::vector<std::vector<float>> result;
 
-    std::string line;
-    while (std::getline(file, line)) {
-        std::stringstream ss(line);
-        std::vector<int> row;
-        std::string cell;
+		std::ifstream file(filename);
+		if (!file.is_open()) {
+			std::cerr << "Error opening file: " << filename << std::endl;
+			return result;
+		}
 
-        while (std::getline(ss, cell, ',')) {
-            try {
-                int value = std::stoi(cell);
-                row.push_back(value);
-            } catch (const std::invalid_argument& e) {
-                std::cerr << "Invalid number format in line: " << line << std::endl;
-                // Handle the error or skip the invalid value
-            }
-        }
+		std::string line;
+		while (std::getline(file, line)) {
+			std::stringstream ss(line);
+			std::vector<float> row;
+			std::string cell;
 
-        result.push_back(row);
-    }
+			while (std::getline(ss, cell, ',')) {
+				try {
+					float value = std::stof(cell);
+					row.push_back(value);
+				} catch (const std::invalid_argument& e) {
+					std::cerr << "Invalid number format in line: " << line << std::endl;
+					// Handle the error or skip the invalid value
+				}
+			}
 
-    file.close();
+			result.push_back(row);
+		}
 
-    return result;
-}
+		file.close();
+
+		return result;
+	}
+};
