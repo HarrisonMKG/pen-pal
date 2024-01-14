@@ -55,8 +55,8 @@ class KortexRobot
 		//Destructor
 	}
 
-	std::vector<std::vector<int>> read_csv(const std::string& filename) {
-		std::vector<std::vector<int>> result;
+	std::vector<std::vector<float>> read_csv(const std::string& filename) {
+		std::vector<std::vector<float>> result;
 
 		std::ifstream file(filename);
 		if (!file.is_open()) {
@@ -67,12 +67,12 @@ class KortexRobot
 		std::string line;
 		while (std::getline(file, line)) {
 			std::stringstream ss(line);
-			std::vector<int> row;
+			std::vector<float> row;
 			std::string cell;
 
 			while (std::getline(ss, cell, ',')) {
 				try {
-					int value = std::stoi(cell);
+					float value = std::stof(cell);
 					row.push_back(value);
 				} catch (const std::invalid_argument& e) {
 					std::cerr << "Invalid number format in line: " << line << std::endl;
@@ -92,10 +92,10 @@ class KortexRobot
 int main()
 {
 	KortexRobot pen_pal("1.2.3.4");
-	vector<vector<int>> matrix = pen_pal.read_csv("../coordinates/values.csv");
+	vector<vector<float>> matrix = pen_pal.read_csv("../coordinates/ir_sensor_data.csv");
 
 	for (const auto& row : matrix) {
-        for (int value : row) {
+        for (float value : row) {
             std::cout << value << " ";
         }
         std::cout << std::endl;
