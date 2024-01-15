@@ -121,7 +121,7 @@ convert_points_to_angles(k_api::Base::BaseClient* base, std::vector<vector<float
             return final_joint_angles;
         }
 
-        std::cout << "Joint ID : Joint Angle" << std::endl;
+        // std::cout << "Joint ID : Joint Angle" << std::endl;
         int joint_identifier = 0;
         std::vector<float> temp_joints(6, 0.0f);
         // Kinova::Api::Base::JointAngle* hAngle; 
@@ -129,9 +129,9 @@ convert_points_to_angles(k_api::Base::BaseClient* base, std::vector<vector<float
         for (auto joint_angle : computed_joint_angles.joint_angles()) 
         {
             
-            float temp_value = joint_angle.value();
+            // float temp_value = joint_angle.value();
             temp_joints[joint_identifier] = joint_angle.value();
-            std::cout << joint_identifier << " : " << joint_angle.value() << std::endl;
+            // std::cout << joint_identifier << " : " << joint_angle.value() << std::endl;
 
             joint_identifier++;
         }
@@ -257,28 +257,16 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     const float zHeight = 0.15f;
     std::vector<std::vector<float>> waypointsDefinition;
     std::vector<vector<float>> target_joint_angles_IK;
-    waypointsDefinition = { {0.5f,   0.35f,  zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z}
-                            // {0.25f,   0.35f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
-                            // {0.25f,   -0.35f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
-                            // {0.5f,  -0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z}
+    waypointsDefinition = { {0.5f,   0.35f,  zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
+                            {0.25f,   0.35f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                            {0.25f,   -0.35f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                            {0.5f,  -0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z}
                             };
     
     target_joint_angles_IK = convert_points_to_angles(base, waypointsDefinition);
     std::cout << "Completed Move to Home and converted Points" << std::endl;
     int indx = 0;
    
-
-    for (auto waypointAngles: target_joint_angles_IK)
-    {
-        std::cout << "Point:" << indx << std::endl;
-
-        for (auto currAngle: waypointAngles){
-            std::cout << currAngle << ", ";
-        }
-        std::cout << std::endl;
-    }
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-     //return true;
     
     k_api::BaseCyclic::Feedback base_feedback;
     k_api::BaseCyclic::Command  base_command;
@@ -292,6 +280,33 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                                                         {54.8453,42.3845,251.666,177.292,29.2051,326.074},
                                                         {35.5099,59.507,294.507,178.444,54.8327,305.565}
                                                     };
+
+
+    for (int i = 0; i < target_joint_angles_IK.size(); i++)
+    {
+        std::cout << "IK vs Premade generated Angles:" << indx << std::endl;
+        for (auto currAngle: target_joint_angles_IK[i]){
+            std::cout << currAngle << ", ";
+        }
+        std::cout << std::endl;
+        for (auto currAngle: target_joint_angles[i]){
+            std::cout << currAngle << ", ";
+        }
+        std::cout << std::endl;
+    }
+    // for (auto waypointAngles: target_joint_angles)
+    // {
+    //     std::cout << "Premade Angles:" << indx << std::endl;
+    //     for (auto currAngle: waypointAngles){
+    //         std::cout << currAngle << ", ";
+    //     }
+    //     std::cout << std::endl;
+    // }
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
+    // return true;
+
+     
     std::vector<float> velocity_commands(6, 0.0f);
 
     float position_tolerance = 0.1;
@@ -329,19 +344,19 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
             // avoid this in a real-time loop
             std::string serialized_data;
             std::string output_data; 
-            serialized_data = serialized_data.append("Joint[0]");
-            google::protobuf::util::MessageToJsonString(data.actuators(0), &serialized_data);
-            serialized_data = serialized_data.append("\nJoint[1]");
-            google::protobuf::util::MessageToJsonString(data.actuators(1), &serialized_data);
-            serialized_data = serialized_data.append("\nJoint[2]");
-            google::protobuf::util::MessageToJsonString(data.actuators(2), &serialized_data);
-            serialized_data = serialized_data.append("\nJoint[3]");
-            google::protobuf::util::MessageToJsonString(data.actuators(3), &serialized_data);
-            serialized_data = serialized_data.append("\nJoint[4]");
-            google::protobuf::util::MessageToJsonString(data.actuators(4), &serialized_data);
-            serialized_data = serialized_data.append("\nJoint[5]");
-            google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
-            std::cout << serialized_data << std::endl << std::endl;
+            // serialized_data = serialized_data.append("Joint[0]");
+            // google::protobuf::util::MessageToJsonString(data.actuators(0), &serialized_data);
+            // serialized_data = serialized_data.append("\nJoint[1]");
+            // google::protobuf::util::MessageToJsonString(data.actuators(1), &serialized_data);
+            // serialized_data = serialized_data.append("\nJoint[2]");
+            // google::protobuf::util::MessageToJsonString(data.actuators(2), &serialized_data);
+            // serialized_data = serialized_data.append("\nJoint[3]");
+            // google::protobuf::util::MessageToJsonString(data.actuators(3), &serialized_data);
+            // serialized_data = serialized_data.append("\nJoint[4]");
+            // google::protobuf::util::MessageToJsonString(data.actuators(4), &serialized_data);
+            // serialized_data = serialized_data.append("\nJoint[5]");
+            // google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
+            // std::cout << serialized_data << std::endl << std::endl;
         };
         // bool target_reached = false;
         int stage = 0;
@@ -354,63 +369,72 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
             {
                 base_feedback = base_cyclic->RefreshFeedback();
                 atPosition = 0;
-                    for(int i = 0; i < actuator_count-1; i++)
-                        {   
-                        float current_pos = base_feedback.actuators(i).position();
-                        // float target_pos = target_joint_angles[stage][i];
-                        float position_error = target_joint_angles[stage][i] - base_feedback.actuators(i).position();
+                for(int i = 0; i < actuator_count-1; i++)
+                    {   
+                    float current_pos = base_feedback.actuators(i).position();
 
-                        float new_position = 0;
-                        // velocity_commands[i] = position_error * gain;
-                            if (std::abs(position_error) > position_tolerance) {
-                                 if (std::abs(position_error) > 10.0f ){
-                                    if(i != 0 && i != 1 && i != 2){
-                                        //if the motors cant go full 360
-                                        if(position_error > 0.0f){
-                                            new_position = current_pos + 0.01*60.0f;
-                                        }else{
-                                            new_position = current_pos - 0.01*60.0f;
-                                        }
-                                        
+                    // float position_error = target_joint_angles[stage][i] - base_feedback.actuators(i).position();
+                    float position_error = target_joint_angles_IK[stage][i] - base_feedback.actuators(i).position();
+
+                    float new_position = 0;
+                        if (std::abs(position_error) > position_tolerance) {
+                                if (std::abs(position_error) > 10.0f){
+                                if(i != 0 && i != 1 && i != 2){
+                                    //if the motors cant go full 360
+                                    if(position_error > 0.0f){
+                                        new_position = current_pos + 0.01*60.0f;
                                     }else{
-                                        //if motors can go full 360 with roll over protection for base
-                                         if(position_error > 0.0f || (i == 0 && (abs(position_error) > 360 +target_joint_angles[stage][i] - base_feedback.actuators(i).position()))){
-                                        new_position = current_pos + 0.01*30.0f;
-                                         }else{
-                                        new_position = current_pos - 0.01*30.0f;
-                                         }
+                                        new_position = current_pos - 0.01*60.0f;
                                     }
-                                   
+                                    
                                 }else{
-                                    //slows down because were in threshold area
-                                    if(i != 0 && i != 1 && i != 2){
-                                        //speed limit for smaller motors
-                                        if(position_error > 0.0f){
-                                        new_position = current_pos + 0.01*10.0f;
+                                    //if motors can go full 360 with roll over protection for base
+                                        if(position_error > 0.0f && (i == 0 && (abs(position_error) > 360 +target_joint_angles[stage][i] - base_feedback.actuators(i).position()))){
+                                        new_position = current_pos - 0.01*30.0f;
+                                        std::cout << "roll over right " <<stage << std::endl << std::endl;
+                                        }else if(position_error < 0.0f && (i == 0 && (abs(position_error) > 360 + target_joint_angles[stage][i] - base_feedback.actuators(i).position()))){
+                                            new_position = current_pos + 0.01*30.0f;
+                                            std::cout << "roll over left: " <<stage << std::endl << std::endl;
+                                        }else if(position_error > 0.0f){
+                                            new_position = current_pos + 0.01*30.0f;
+                                            std::cout << "just right: " <<stage << std::endl << std::endl;
                                         }else{
-                                        new_position = current_pos - 0.01*10.0f;
+                                    new_position = current_pos - 0.01*30.0f;
+                                    std::cout << "just left: " <<stage << std::endl << std::endl;
                                         }
+                                }
+                                
+                            }else{
+                                //slows down because were in threshold area
+                                if(i != 0 && i != 1 && i != 2){
+                                    //speed limit for smaller motors
+                                    if(position_error > 0.0f){
+                                    new_position = current_pos + 0.01*10.0f;
                                     }else{
-                                        //speed limits for bigger motor
-                                        if(position_error > 0.0f){
-                                        new_position = current_pos + 0.01*10.0f;
-                                        }else{
-                                        new_position = current_pos - 0.01*10.0f;    
-                                        }
+                                    new_position = current_pos - 0.01*10.0f;
+                                    }
+                                }else{
+                                    //speed limits for bigger motor
+                                    if(position_error > 0.0f){
+                                    new_position = current_pos + 0.01*10.0f;
+                                    }else{
+                                    new_position = current_pos - 0.01*10.0f;    
                                     }
                                 }
-                                base_command.mutable_actuators(i)->set_position(new_position);
-                            }else{
-                                atPosition++;
-                            } 
-                        }
+                            }
+                            base_command.mutable_actuators(i)->set_position(new_position);
+                        }else{
+                            atPosition++;
+                        } 
+                    }
+                    
                 if(atPosition == 5){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     
                 }
                 if(stage == 4){
-                    timeout++;
+                    break;
                 }
                 try
                 {
