@@ -104,7 +104,12 @@ convert_points_to_angles(k_api::Base::BaseClient* base, std::vector<vector<float
         {
             jAngle = input_IkData.mutable_guess()->add_joint_angles();
             // '- 1' to generate an actual "guess" for current joint angles
-            jAngle->set_value(joint_angle.value() - 1); 
+            if (joint_angle.value()+1 < 360 && joint_angle.value() -1 > 0 ){
+                jAngle->set_value(joint_angle.value() + 1);
+            }else{
+                 jAngle->set_value(0);
+            }
+            
         }
 
 
@@ -112,7 +117,7 @@ convert_points_to_angles(k_api::Base::BaseClient* base, std::vector<vector<float
         k_api::Base::JointAngles computed_joint_angles;
         try
         {
-            computed_joint_angles = base->ComputeInverseKinematics(input_IkData);
+            computed_joint_angles = base->ComputeInverseKinematics(input_IkData); 
         }
         catch (k_api::KDetailedException& ex)
         {
@@ -260,7 +265,8 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     waypointsDefinition = { {0.5f,   0.35f,  zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
                             {0.25f,   0.35f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
                             {0.25f,   -0.35f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
-                            {0.5f,  -0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z}
+                            {0.5f,  -0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
+                            {0.5f,  0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z}
                             };
     
     target_joint_angles_IK = convert_points_to_angles(base, waypointsDefinition);
@@ -278,7 +284,8 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                                                         {325.551, 59.2881, 294.432, 178.533, 54.9385, 235.541},
                                                         {305.869,42.0627,251.539,177.517,29.3456,216.948},
                                                         {54.8453,42.3845,251.666,177.292,29.2051,326.074},
-                                                        {35.5099,59.507,294.507,178.444,54.8327,305.565}
+                                                        {35.5099,59.507,294.507,178.444,54.8327,305.565},
+                                                        {325.551, 59.2881, 294.432, 178.533, 54.9385, 235.541}
                                                     };
 
 
@@ -374,11 +381,19 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                     float current_pos = base_feedback.actuators(i).position();
 
                     // float position_error = target_joint_angles[stage][i] - base_feedback.actuators(i).position();
+                    float inverse_current_position = current_pos - 180; //Ex: 20 degrees
+                    if (inverse_current_position < 0)
+                    {
+                        inverse_current_position += 360.0; //Ex: 200 degrees
+                    }
+                    
                     float position_error = target_joint_angles_IK[stage][i] - base_feedback.actuators(i).position();
 
                     float new_position = 0;
                         if (std::abs(position_error) > position_tolerance) {
-                                if (std::abs(position_error) > 10.0f){
+                            if (std::abs(position_error) > 10.0f){
+                                // TODO: Check if these are thecorrect joints, or update the comment below
+                                // Joint 0 CAN go 360
                                 if(i != 0 && i != 1 && i != 2){
                                     //if the motors cant go full 360
                                     if(position_error > 0.0f){
@@ -389,21 +404,56 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                                     
                                 }else{
                                     //if motors can go full 360 with roll over protection for base
-                                        if(position_error > 0.0f && (i == 0 && (abs(position_error) > 360 +target_joint_angles[stage][i] - base_feedback.actuators(i).position()))){
-                                        new_position = current_pos - 0.01*30.0f;
-                                        std::cout << "roll over right " <<stage << std::endl << std::endl;
-                                        }else if(position_error < 0.0f && (i == 0 && (abs(position_error) > 360 + target_joint_angles[stage][i] - base_feedback.actuators(i).position()))){
-                                            new_position = current_pos + 0.01*30.0f;
-                                            std::cout << "roll over left: " <<stage << std::endl << std::endl;
-                                        }else if(position_error > 0.0f){
-                                            new_position = current_pos + 0.01*30.0f;
-                                            std::cout << "just right: " <<stage << std::endl << std::endl;
-                                        }else{
-                                    new_position = current_pos - 0.01*30.0f;
-                                    std::cout << "just left: " <<stage << std::endl << std::endl;
+                                    if (i == 0){
+                                        // Find what side the arm is on
+                                        if (current_pos > 180){
+                                            if (target_joint_angles_IK[stage][i] > inverse_current_position && target_joint_angles_IK[stage][i] < current_pos){
+                                                // Turn left
+                                                new_position = current_pos - 0.01*30.0f;
+                                                std::cout << "(LEFT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
+                                                
+                                            } else {
+                                                // Turn Right
+                                                std::cout << "(RIGHT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
+                                                new_position = current_pos + 0.01*30.0f;
+                                            }
+                                        } else {
+                                            if (target_joint_angles_IK[stage][i] < inverse_current_position && target_joint_angles_IK[stage][i] > current_pos){
+                                                // Turn left
+                                                std::cout << "(RIGHT-I) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
+                                                new_position = current_pos + 0.01*30.0f;
+                                            } else {
+                                                // Turn Right
+                                                std::cout << "(LEFT-I) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
+                                                new_position = current_pos - 0.01*30.0f;
+                                            }
                                         }
+                                    }else {
+                                        if(position_error > 0.0f){
+                                                                                    
+                                            // if((i == 0 && (abs(position_error) > 360 +target_joint_angles[stage][i] - base_feedback.actuators(i).position()))){
+                                                // new_position = current_pos - 0.01*30.0f;
+                                                // std::cout << "roll over left " <<stage << std::endl << std::endl;
+                                            // }else{
+                                            new_position = current_pos + 0.01*30.0f;
+                                            //     if(i == 0){
+                                            //         std::cout << "turning right" <<stage << std::endl << std::endl;
+                                            //     }
+                            
+                                            // }
+                                        }else{
+                                            // if(i == 0 && (abs(position_error) > 360 + target_joint_angles_IK[stage][i] - base_feedback.actuators(i).position())){
+                                            // new_position = current_pos + 0.01*30.0f;
+                                            // std::cout << "roll over right: " <<stage << std::endl << std::endl;
+                                            // }else{
+                                            new_position = current_pos - 0.01*30.0f;
+                                                // if(i == 0){
+                                                //     std::cout << "turning left" <<stage << std::endl << std::endl;
+                                                // }
+                                            // }
+                                        }
+                                    }
                                 }
-                                
                             }else{
                                 //slows down because were in threshold area
                                 if(i != 0 && i != 1 && i != 2){
@@ -433,7 +483,7 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     
                 }
-                if(stage == 4){
+                if(stage == 5){
                     break;
                 }
                 try
