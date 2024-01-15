@@ -116,7 +116,7 @@ void populateCartesianCoordinate(k_api::Base::CartesianWaypoint* cartesianCoordi
 bool example_trajectory(k_api::Base::BaseClient* base)
 {
     bool success = false;
-    string pattern = "Square";
+    string pattern = "Abstract";
     std::vector<std::vector<float>> waypointsDefinition;
     auto product = base->GetProductConfiguration();
     if(   product.model() == k_api::ProductConfiguration::MODEL_ID_L53 
@@ -151,8 +151,13 @@ bool example_trajectory(k_api::Base::BaseClient* base)
                                     {0.4f,   -0.20f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z}};
             }
             else if(pattern == "Abstract"){
-
-            }
+            waypointsDefinition = { {0.4f,   0.2f,  zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    // {0.3f,   0.1f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    // {0.3f,   0.0f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    // {0.3f,   -0.1f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                                    // {0.3f,   -0.20f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z}
+                                    };
+            }  
             else{
 
             }

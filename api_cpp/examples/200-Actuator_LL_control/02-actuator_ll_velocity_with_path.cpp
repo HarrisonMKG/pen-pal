@@ -105,9 +105,9 @@ convert_points_to_angles(k_api::Base::BaseClient* base, std::vector<vector<float
             jAngle = input_IkData.mutable_guess()->add_joint_angles();
             // '- 1' to generate an actual "guess" for current joint angles
             if (joint_angle.value()+1 < 360 && joint_angle.value() -1 > 0 ){
-                jAngle->set_value(joint_angle.value() + 1);
+                jAngle->set_value(joint_angle.value());
             }else{
-                 jAngle->set_value(0);
+                 jAngle->set_value(joint_angle.value());
             }
             
         }
@@ -252,7 +252,7 @@ void example_move_to_home_position(k_api::Base::BaseClient* base)
 bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic)
 {
     bool return_status = true;
-
+    string pattern = "Line";
     // Move arm to ready position
     example_move_to_home_position(base);
 
@@ -260,15 +260,24 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     const float kTheta_y = 0.0;
     const float kTheta_z = 90.0;
     const float zHeight = 0.15f;
+    const float zHeight_line = 0.266f;
     std::vector<std::vector<float>> waypointsDefinition;
     std::vector<vector<float>> target_joint_angles_IK;
+    if (pattern == "Sqaure"){
     waypointsDefinition = { {0.5f,   0.35f,  zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
                             {0.25f,   0.35f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
                             {0.25f,   -0.35f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
                             {0.5f,  -0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
                             {0.5f,  0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z}
                             };
-    
+    }else if (pattern == "Line"){
+        waypointsDefinition = {
+                            {0.25f,   0.0f,  zHeight_line, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                            {0.38f,   0.0f, zHeight_line, 0.0f, kTheta_x, kTheta_y, kTheta_z},
+                            {0.504f,  0.0f, zHeight_line,  0.0f, kTheta_x, kTheta_y, kTheta_z},
+                            {0.652f,  0.0f, zHeight_line,  0.0f, kTheta_x, kTheta_y, kTheta_z}
+                            };
+    }
     target_joint_angles_IK = convert_points_to_angles(base, waypointsDefinition);
     std::cout << "Completed Move to Home and converted Points" << std::endl;
     int indx = 0;
@@ -368,6 +377,8 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
         // bool target_reached = false;
         int stage = 0;
         int atPosition = 0;
+        int segments = waypointsDefinition.size();
+        std::cout << segments << std::endl << std::endl;
         // Real-time loop
         while(timer_count < (time_duration * 1000))
         {
@@ -397,7 +408,10 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                                 if(i != 0 && i != 1 && i != 2){
                                     //if the motors cant go full 360
                                     if(position_error > 0.0f){
-                                        new_position = current_pos + 0.01*60.0f;
+                                        if (target_joint_angles_IK[stage][i] > 120 && i == 4){
+                                            new_position = current_pos - 0.01*60.0f;
+                                        }else{
+                                        new_position = current_pos + 0.01*60.0f;}
                                     }else{
                                         new_position = current_pos - 0.01*60.0f;
                                     }
@@ -407,7 +421,7 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                                     if (i == 0){
                                         // Find what side the arm is on
                                         if (current_pos > 180){
-                                            if (target_joint_angles_IK[stage][i] > inverse_current_position && target_joint_angles_IK[stage][i] < current_pos){
+                                            if ((target_joint_angles_IK[stage][i] > inverse_current_position && target_joint_angles_IK[stage][i] < current_pos)){
                                                 // Turn left
                                                 new_position = current_pos - 0.01*30.0f;
                                                 std::cout << "(LEFT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
@@ -483,7 +497,7 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     
                 }
-                if(stage == 5){
+                if(stage == segments){
                     break;
                 }
                 try
