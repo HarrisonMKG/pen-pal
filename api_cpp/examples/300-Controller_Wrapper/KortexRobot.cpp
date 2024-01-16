@@ -16,14 +16,68 @@
 
 namespace k_api = Kinova::Api;
 
-KortexRobot::KortexRobot(const std::string& ip_address)
+KortexRobot::KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password)
 {
-	//Constructor
+	KortexRobot::ip_address = ip_address;
+	KortexRobot::username = username;
+	KortexRobot::password = password;
+
+	KortexRobot::connect();
+}
+
+void KortexRobot::connect()
+{
+    // Create API objects
+    auto error_callback = [](k_api::KError err){ cout << "_________ callback error _________" << err.toString(); };
+    transport = new k_api::TransportClientTcp();
+    router = new k_api::RouterClient(transport, error_callback);
+    transport->connect(ip_address, PORT);
+
+    transport_real_time = new k_api::TransportClientUdp();
+    router_real_time = new k_api::RouterClient(transport_real_time, error_callback);
+    transport_real_time->connect(ip_address, PORT_REAL_TIME);
+
+    // Set session data connection information
+    create_session_info = k_api::Session::CreateSessionInfo();
+    create_session_info.set_username(username);
+    create_session_info.set_password(password);
+    create_session_info.set_session_inactivity_timeout(60000);   // (milliseconds)
+    create_session_info.set_connection_inactivity_timeout(2000); // (milliseconds)
+
+    // Session manager service wrapper
+    std::cout << "Creating sessions for communication" << std::endl;
+    session_manager = new k_api::SessionManager(router);
+    session_manager->CreateSession(create_session_info);
+    session_manager_real_time = new k_api::SessionManager(router_real_time);
+    session_manager_real_time->CreateSession(create_session_info);
+    std::cout << "Sessions created" << std::endl;
+
+    // Create services
+    base = new k_api::Base::BaseClient(router);
+    base_cyclic = new k_api::BaseCyclic::BaseCyclicClient(router_real_time);
+
+}
+
+void KortexRobot::disconnect()
+{
+    router->SetActivationStatus(false);
+    transport->disconnect();
+    router_real_time->SetActivationStatus(false);
+    transport_real_time->disconnect();
 }
 
 KortexRobot::~KortexRobot()
 {
-	//Destructor
+	KortexRobot::disconnect();
+
+    delete base;
+    delete base_cyclic;
+    delete session_manager;
+    delete session_manager_real_time;
+    delete router;
+    delete router_real_time;
+    delete transport;
+    delete transport_real_time;
 }
 
 std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filename) {

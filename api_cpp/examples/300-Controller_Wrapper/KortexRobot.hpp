@@ -26,22 +26,40 @@
 #include "utilities.h"
 
 #define PORT 10000
-#define PORT_RT 10001
+#define PORT_REAL_TIME 10001
 
+namespace k_api = Kinova::Api;
 
 class KortexRobot
 {
 private:
-    /* data */
+    std::string ip_address;
+    std::string username;
+    std::string password;
+
+    k_api::TransportClientTcp* transport;
+    k_api::RouterClient* router;
+    k_api::TransportClientUdp* transport_real_time;
+    k_api::RouterClient* router_real_time;
+
+    k_api::Session::CreateSessionInfo create_session_info;
+
+    k_api::SessionManager* session_manager;
+    k_api::SessionManager* session_manager_real_time;
+
+    k_api::Base::BaseClient* base;
+    k_api::BaseCyclic::BaseCyclicClient* base_cyclic;
 
 public:
-    KortexRobot(const std::string& ip_address);
+    KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password);
+	void connect();
+	void disconnect();
     ~KortexRobot();
-
+	
     std::vector<std::vector<float>> read_csv(const std::string &filename);
 
 protected:
-    std::string ip_address;
+	//data
 };
 
 #endif // KORTEXROBOT_HPP
