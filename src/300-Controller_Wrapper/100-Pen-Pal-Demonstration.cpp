@@ -7,6 +7,7 @@ int main(int argc, char **argv)
 
 	KortexRobot pen_pal(parsed_args.ip_address,parsed_args.username,parsed_args.password);
 	pen_pal.go_home();
+	pen_pal.move_cartesian();
 
 
 	vector<vector<float>> matrix = pen_pal.read_csv("../coordinates/ir_sensor_data.csv");
