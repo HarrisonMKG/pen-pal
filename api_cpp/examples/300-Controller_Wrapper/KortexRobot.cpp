@@ -54,7 +54,7 @@ void KortexRobot::connect()
 
     // Create services
     base = new k_api::Base::BaseClient(router);
-    base_cyclic = new k_api::BaseCyclic::BaseCyclicClient(router_real_time);
+	base_cyclic = new k_api::BaseCyclic::BaseCyclicClient(router_real_time);
 
 }
 
@@ -116,4 +116,72 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 	file.close();
 
 	return result;
+}
+
+void KortexRobot::go_home()
+{
+    // Make sure the arm is in Single Level Servoing before executing an Action
+    auto servoingMode = k_api::Base::ServoingModeInformation();
+    servoingMode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
+	base->SetServoingMode(servoingMode);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    // Move arm to ready position
+    std::cout << "Moving the arm to a safe position" << std::endl;
+    auto action_type = k_api::Base::RequestedActionType();
+    action_type.set_action_type(k_api::Base::REACH_JOINT_ANGLES);
+    auto action_list = base->ReadAllActions(action_type);
+    auto action_handle = k_api::Base::ActionHandle();
+    action_handle.set_identifier(0);
+    for (auto action : action_list.action_list()) 
+    {
+        if (action.name() == "Home") 
+        {
+            action_handle = action.handle();
+        }
+    }
+
+    if (action_handle.identifier() == 0) 
+    {
+        std::cout << "Can't reach safe position, exiting" << std::endl;
+    } 
+    else 
+    {
+        bool action_finished = false; 
+        // Notify of any action topic event
+        auto options = k_api::Common::NotificationOptions();
+        auto notification_handle = base->OnNotificationActionTopic(
+            check_for_end_or_abort(action_finished),
+            options
+        );
+
+		base->ExecuteActionFromReference(action_handle);
+
+        while(!action_finished)
+        { 
+            std::this_thread::sleep_for(ACTION_WAITING_TIME);
+        }
+
+		base->Unsubscribe(notification_handle);
+    }
+}
+
+std::function<void(k_api::Base::ActionNotification)> 
+KortexRobot::check_for_end_or_abort(bool& finished)
+{
+    return [&finished](k_api::Base::ActionNotification notification)
+    {
+        std::cout << "EVENT : " << k_api::Base::ActionEvent_Name(notification.action_event()) << std::endl;
+
+        // The action is finished when we receive a END or ABORT event
+        switch(notification.action_event())
+        {
+        case k_api::Base::ActionEvent::ACTION_ABORT:
+        case k_api::Base::ActionEvent::ACTION_END:
+            finished = true;
+            break;
+        default:
+            break;
+        }
+    };
 }
