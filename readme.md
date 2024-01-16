@@ -62,7 +62,7 @@ When there are changes to the files, go into the BUILD_FOLDER and run the MakeFi
 cd BUILD_FOLDER
 make
 ```
-
+(If make is not recognized, use 'mingw32-make')
 
 Look at Kinova_Readme.md and the Readme.md file in api_cpp/examples folder for instructions how to install cMake, gcc
 
