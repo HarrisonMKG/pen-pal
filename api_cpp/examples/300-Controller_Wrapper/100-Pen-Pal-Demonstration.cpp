@@ -1,10 +1,5 @@
 #include "KortexRobot.cpp"
 
-#define PORT 10000
-#define PORT_REAL_TIME 10001
-
-#define DURATION 5             // Network timeout (seconds)
-
 int main(int argc, char **argv)
 {
     auto parsed_args = ParseExampleArguments(argc, argv);
