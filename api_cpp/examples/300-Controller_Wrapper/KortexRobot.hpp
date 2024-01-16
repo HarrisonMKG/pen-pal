@@ -30,6 +30,8 @@
 
 namespace k_api = Kinova::Api;
 
+const auto ACTION_WAITING_TIME = std::chrono::seconds(1);
+
 class KortexRobot
 {
 private:
@@ -49,9 +51,13 @@ private:
 
     k_api::Base::BaseClient* base;
     k_api::BaseCyclic::BaseCyclicClient* base_cyclic;
+	
+	std::function<void(k_api::Base::ActionNotification)>
+	check_for_end_or_abort(bool& finished);
 
 public:
     KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password);
+	void go_home();
 	void connect();
 	void disconnect();
     ~KortexRobot();
