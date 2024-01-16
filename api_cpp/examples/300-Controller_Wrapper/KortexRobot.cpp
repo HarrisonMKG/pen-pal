@@ -60,6 +60,11 @@ void KortexRobot::connect()
 
 void KortexRobot::disconnect()
 {
+	//Close API session
+	session_manager->CloseSession();
+	session_manager_real_time->CloseSession();
+
+	// Deactivate the router and cleanly disconnect from the transport object
     router->SetActivationStatus(false);
     transport->disconnect();
     router_real_time->SetActivationStatus(false);
