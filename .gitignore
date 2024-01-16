@@ -1,6 +1,6 @@
 */kortex_api/
 kortex_api*.zip
-/*build*
+*/build*/
 .vscode/
 __pycache__/
 *venv/
