@@ -25,12 +25,21 @@
 
 #include "utilities.h"
 
+#if defined(_MSC_VER)
+#include <Windows.h>
+#else
+#include <unistd.h>
+#endif
+#include <time.h>
+
 #define PORT 10000
 #define PORT_REAL_TIME 10001
+#define DURATION 15             // Network timeout (seconds)
 
 namespace k_api = Kinova::Api;
 
 const auto ACTION_WAITING_TIME = std::chrono::seconds(1);
+float time_duration = DURATION; // Duration of the example (seconds)
 
 class KortexRobot
 {
@@ -54,6 +63,12 @@ private:
 	
 	std::function<void(k_api::Base::ActionNotification)>
 	check_for_end_or_abort(bool& finished);
+	void printException(k_api::KDetailedException& ex);
+
+	int64_t GetTickUs();
+	std::vector<vector<float>>
+	convert_points_to_angles(std::vector<vector<float>> target_points);
+
 
 public:
     KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password);
@@ -61,6 +76,8 @@ public:
 	void connect();
 	void disconnect();
     ~KortexRobot();
+
+	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition);
 	
     std::vector<std::vector<float>> read_csv(const std::string &filename);
 
