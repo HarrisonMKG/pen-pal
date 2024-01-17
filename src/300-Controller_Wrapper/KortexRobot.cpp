@@ -203,35 +203,12 @@ int64_t KortexRobot::GetTickUs()
 #endif
 }
 
-bool KortexRobot::move_cartesian()
+bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition)
 {
     bool return_status = true;
     string pattern = "Line";
     // Move arm to ready position
-    go_home();
-
-    const float kTheta_x = -180.0;
-    const float kTheta_y = 0.0;
-    const float kTheta_z = 90.0;
-    const float zHeight = 0.15f;
-    const float zHeight_line = 0.266f;
-    std::vector<std::vector<float>> waypointsDefinition;
     std::vector<vector<float>> target_joint_angles_IK;
-    if (pattern == "Sqaure"){
-    waypointsDefinition = { {0.5f,   0.35f,  zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
-                            {0.25f,   0.35f,  zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
-                            {0.25f,   -0.35f, zHeight, 0.0f, kTheta_x, kTheta_y, kTheta_z},
-                            {0.5f,  -0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z},
-                            {0.5f,  0.35f, zHeight,  0.0f, kTheta_x, kTheta_y, kTheta_z}
-                            };
-    }else if (pattern == "Line"){
-        waypointsDefinition = {
-                            {0.25f,   0.0f,  zHeight_line, 0.0f, kTheta_x, kTheta_y, kTheta_z},
-                            {0.38f,   0.0f, zHeight_line, 0.0f, kTheta_x, kTheta_y, kTheta_z},
-                            {0.504f,  0.0f, zHeight_line,  0.0f, kTheta_x, kTheta_y, kTheta_z},
-                            {0.652f,  0.0f, zHeight_line,  0.0f, kTheta_x, kTheta_y, kTheta_z}
-                            };
-    }
     target_joint_angles_IK = convert_points_to_angles(waypointsDefinition);
     std::cout << "Completed Move to Home and converted Points" << std::endl;
     int indx = 0;

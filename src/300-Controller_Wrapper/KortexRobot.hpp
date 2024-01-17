@@ -77,7 +77,7 @@ public:
 	void disconnect();
     ~KortexRobot();
 
-	bool move_cartesian();
+	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition);
 	
     std::vector<std::vector<float>> read_csv(const std::string &filename);
 
