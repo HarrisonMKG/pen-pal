@@ -19,6 +19,7 @@
 
 #include <BaseClientRpc.h>
 #include <BaseCyclicClientRpc.h>
+#include <ControlConfigClientRpc.h>
 #include <SessionClientRpc.h>
 #include <SessionManager.h>
 
@@ -249,12 +250,18 @@ void example_move_to_home_position(k_api::Base::BaseClient* base)
     }
 }
 
-bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic)
+bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ControlConfig::ControlConfigClient* control_config)
 {
     bool return_status = true;
     string pattern = "Line";
     // Move arm to ready position
     example_move_to_home_position(base);
+
+    // GET CONTROL CONFIG LIMITS 
+    k_api::ControlConfig::ControlModeInformation control_mode;
+    k_api::ControlConfig::KinematicLimits hard_limits;
+    control_mode = control_config->GetControlMode();
+    hard_limits = control_config->GetKinematicHardLimits(control_mode);
 
     const float kTheta_x = -180.0;
     const float kTheta_y = 0.0;
@@ -286,7 +293,6 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     k_api::BaseCyclic::Feedback base_feedback;
     k_api::BaseCyclic::Command  base_command;
 
-    
 
     std::vector<float> commands;
     std::vector<vector<float>> target_joint_angles = {
@@ -310,18 +316,8 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
         }
         std::cout << std::endl;
     }
-    // for (auto waypointAngles: target_joint_angles)
-    // {
-    //     std::cout << "Premade Angles:" << indx << std::endl;
-    //     for (auto currAngle: waypointAngles){
-    //         std::cout << currAngle << ", ";
-    //     }
-    //     std::cout << std::endl;
-    // }
+    
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-
-    // return true;
-
      
     std::vector<float> velocity_commands(6, 0.0f);
 
@@ -374,6 +370,8 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
             // google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
             // std::cout << serialized_data << std::endl << std::endl;
         };
+        
+        
         // bool target_reached = false;
         int stage = 0;
         int atPosition = 0;
@@ -569,8 +567,10 @@ int main(int argc, char **argv)
     auto base = new k_api::Base::BaseClient(router);
     auto base_cyclic = new k_api::BaseCyclic::BaseCyclicClient(router_real_time);
 
+    auto control_config = new k_api::ControlConfig::ControlConfigClient(router);
+
     // Example core
-    auto isOk = example_actuator_low_level_velocity_control(base, base_cyclic);
+    auto isOk = example_actuator_low_level_velocity_control(base, base_cyclic, control_config);
     if (!isOk)
     {
         std::cout << "There has been an unexpected error in example_cyclic_armbase() function." << std::endl;
