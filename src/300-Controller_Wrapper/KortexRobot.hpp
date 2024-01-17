@@ -10,6 +10,8 @@
 #include <fstream>
 #include <sstream>
 
+#include <Logger.h>
+
 #include <KDetailedException.h>
 
 #include <BaseClientRpc.h>
@@ -38,6 +40,8 @@ private:
     std::string ip_address;
     std::string username;
     std::string password;
+
+
 
     k_api::TransportClientTcp* transport;
     k_api::RouterClient* router;
