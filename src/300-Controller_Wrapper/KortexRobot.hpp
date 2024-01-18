@@ -24,6 +24,8 @@
 #include <google/protobuf/util/json_util.h>
 
 #include "utilities.h"
+#include "logger.cpp"
+
 
 #if defined(_MSC_VER)
 #include <Windows.h>
@@ -47,6 +49,8 @@ private:
     std::string ip_address;
     std::string username;
     std::string password;
+    std::string output_folder;
+    int actuator_count;
 
 
 
@@ -73,19 +77,23 @@ private:
 
 
 public:
-    KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password);
+    KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password, const std::string& output_folder);
 	void go_home();
 	void connect();
 	void disconnect();
 	void writing_mode();
     ~KortexRobot();
-
+    
 	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition);
 	
     std::vector<std::vector<float>> read_csv(const std::string &filename);
+    std::vector<std::vector<float>> csv_to_cartesian_waypoints(std::vector<std::vector<float>> csv_waypoints, float kTheta_x, float kTheta_y, float kTheta_z);
+
+    Logger mylogger;
 
 protected:
 	//data
+
 };
 
 #endif // KORTEXROBOT_HPP

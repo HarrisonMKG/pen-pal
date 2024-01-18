@@ -71,7 +71,8 @@ Look at Kinova_Readme.md and the Readme.md file in api_cpp/examples folder for i
 Modify "coordinates.csv" in terms of:
 
 ```
-x_1,x_2,x_3,...,x_n
-y_1,y_2,y_3,...,y_n
-z_1,z_2,z_3,...,z_n
+x_1,y1,z_1
+x_2,y_2,z_2
+...
+x_n,y_n,z_n
 ```
