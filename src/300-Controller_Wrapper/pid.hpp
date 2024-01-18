@@ -17,7 +17,7 @@ class PID
 		void set_direction(int direction);
 		float calculate_pid(float val); // not sure how this would work, just example of what you could do
 
-		PID();
+		PID(float k_p, float k_i, float k_d);
 		~PID();
 	protected:
 		//data

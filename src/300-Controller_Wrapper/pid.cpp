@@ -6,9 +6,11 @@ PID::calculate_pid(float val)
 	//implementation
 }
 
-PID::PID()
+PID::PID(float k_p, float k_i, float k_d);
 {
-	//constructor
+	PID::k_p = k_p;
+	PID::k_i = k_i;
+	PID::k_d = k_d;
 }
 
 PID::~PID()
