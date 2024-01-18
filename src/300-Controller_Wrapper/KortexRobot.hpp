@@ -48,6 +48,8 @@ private:
     std::string username;
     std::string password;
 
+
+
     k_api::TransportClientTcp* transport;
     k_api::RouterClient* router;
     k_api::TransportClientUdp* transport_real_time;
