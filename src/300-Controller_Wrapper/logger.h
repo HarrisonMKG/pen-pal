@@ -3,6 +3,7 @@
 
 #include <iostream>
 #include <fstream>
+#include <sys/stat.h>
 #include <string>
 #include <ctime>
 
@@ -22,8 +23,8 @@ public:
     Logger(const std::string& filename_prefix = "output_log", bool dontLog = false);
     ~Logger();
 
-    void Log(const std::string& message, int level = 0);
-    void LogToFile(const std::string& message, std::ofstream file_name, std::string level = "[INFO] ");
+    void Log(std::string& message, int level = 0);
+    void LogToFile(const std::string& message, std::ofstream file_name);
 
 private:
     std::ofstream file_info_;

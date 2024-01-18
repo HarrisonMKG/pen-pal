@@ -10,8 +10,6 @@
 #include <fstream>
 #include <sstream>
 
-#include <Logger.h>
-
 #include <KDetailedException.h>
 
 #include <BaseClientRpc.h>
