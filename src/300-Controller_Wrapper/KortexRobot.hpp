@@ -77,6 +77,7 @@ public:
 	void go_home();
 	void connect();
 	void disconnect();
+	void writing_mode();
     ~KortexRobot();
 
 	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition);
