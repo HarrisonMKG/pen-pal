@@ -20,6 +20,9 @@ struct ExampleArgs
     std::string ip_address;
     std::string   username;
     std::string   password;
+
+    std::string output; //Output dir for logger class
+    std::string coordinates; //For KortexRobot class
 };
 
 ExampleArgs ParseExampleArguments(int argc, char *argv[]);

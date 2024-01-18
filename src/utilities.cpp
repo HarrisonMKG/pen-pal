@@ -11,6 +11,8 @@ ExampleArgs ParseExampleArguments(int argc, char *argv[])
         ("h,help", "Print help")
         ("u,username", "username to login", cxxopts::value<std::string>()->default_value("admin"))
         ("p,password", "password to login", cxxopts::value<std::string>()->default_value("admin"))
+        ("o,output", "output directory", cxxopts::value<std::string>()->default_value("kortex_logs"))
+        ("c,coordinates", "file path to coordinates csv data", cxxopts::value<std::string>()->default_value("coordinates/ir_sensor_data.csv"))
     ;
 
     ExampleArgs resultArgs;
@@ -28,6 +30,8 @@ ExampleArgs ParseExampleArguments(int argc, char *argv[])
         resultArgs.ip_address = parsed_options["ip"].as<std::string>();
         resultArgs.username = parsed_options["username"].as<std::string>();
         resultArgs.password = parsed_options["password"].as<std::string>();
+        resultArgs.output = parsed_options["output"].as<std::string>();
+        resultArgs.coordinates = parsed_options["coordinates"].as<std::string>();
     }
     catch(const cxxopts::OptionException& exception)
     {
