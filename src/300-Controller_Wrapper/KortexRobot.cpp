@@ -25,15 +25,18 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 	KortexRobot::username = username;
 	KortexRobot::password = password;
 	KortexRobot::output_folder = output_folder;
-
+    bool logger_result = KortexRobot:: mylogger.create_folder_and_files(output_folder);
+    if (!logger_result){
+        std::cout << "Error when setting up the Logger class, Example is likely to fail or no log messages will be saved" << std::endl;
+    }
     KortexRobot::connect();
 }
 
 void KortexRobot::connect()
 {   
-    Logger mylogger(output_folder);
     // Create API objects
     auto error_callback = [](k_api::KError err){cout << "_________ callback error _________" << err.toString();};
+    
     transport = new k_api::TransportClientTcp();
     router = new k_api::RouterClient(transport, error_callback);
     transport->connect(ip_address, PORT);
@@ -61,6 +64,7 @@ void KortexRobot::connect()
     // Create services
     base = new k_api::Base::BaseClient(router);
 	base_cyclic = new k_api::BaseCyclic::BaseCyclicClient(router_real_time);
+    actuator_count = base->GetActuatorCount().count();
 
 }
 
@@ -173,7 +177,7 @@ void KortexRobot::go_home()
 
     if (action_handle.identifier() == 0) 
     {
-        mylogger.Log("Can't reach safe position, exiting", ERR)
+        mylogger.Log("Can't reach safe position, exiting", ERR);
         // std::cout << "Can't reach safe position, exiting" << std::endl;
     } 
     else 
@@ -199,11 +203,11 @@ void KortexRobot::go_home()
 
 std::function<void(k_api::Base::ActionNotification)> 
 KortexRobot::check_for_end_or_abort(bool& finished)
-{
+{   
     return [&finished](k_api::Base::ActionNotification notification)
     {
-        std::string msg = "EVENT : " << k_api::Base::ActionEvent_Name(notification.action_event());
-        mylogger.Log(msg, WARN);
+        std::cout << "EVENT : " << k_api::Base::ActionEvent_Name(notification.action_event());
+        // mylogger.Log(msg, WARN);
 
         // The action is finished when we receive a END or ABORT event
         switch(notification.action_event())
@@ -237,6 +241,27 @@ int64_t KortexRobot::GetTickUs()
 
 bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition)
 {
+    // Define the callback function used in Refresh_callback
+    auto lambda_fct_callback = [](const Kinova::Api::Error &err, const k_api::BaseCyclic::Feedback data)
+    {
+        // TODO: Remove this in a real-time loop
+        std::string serialized_data;
+        std::string output_data; 
+        serialized_data.append("Joint[0]");
+        google::protobuf::util::MessageToJsonString(data.actuators(0), &serialized_data);
+        serialized_data.append("\nJoint[1]");
+        google::protobuf::util::MessageToJsonString(data.actuators(1), &serialized_data);
+        serialized_data.append("\nJoint[2]");
+        google::protobuf::util::MessageToJsonString(data.actuators(2), &serialized_data);
+        serialized_data.append("\nJoint[3]");
+        google::protobuf::util::MessageToJsonString(data.actuators(3), &serialized_data);
+        serialized_data.append("\nJoint[4]");
+        google::protobuf::util::MessageToJsonString(data.actuators(4), &serialized_data);
+        serialized_data.append("\nJoint[5]");
+        google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
+        std::cout << serialized_data << std::endl << std::endl;
+    };
+
     bool return_status = true;
     k_api::BaseCyclic::Feedback base_feedback;
     k_api::BaseCyclic::Command  base_command;
@@ -245,6 +270,9 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     
     auto servoingMode = k_api::Base::ServoingModeInformation();
    
+    // ================================================
+    // ONE FUNCTION - Takes in waypoints from a csv, turns them into cartesian co-ordinates 
+    // with specified orientation and then performs IK to get the target joint angles
     std::vector<vector<float>> target_joint_angles_IK;
     const float kTheta_x = -180.0;
     const float kTheta_y = 0.0;
@@ -265,7 +293,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     //                                                 };
 
     for (int i = 0; i < target_joint_angles_IK.size(); i++)
-    {
+    {   
         std::cout << "IK vs Premade generated Angles:" << i << std::endl;
         for (auto currAngle: target_joint_angles_IK[i]){
             std::cout << currAngle << ", ";
@@ -275,27 +303,23 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     // Delay to allow for us to confirm angles being given to robot
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
 
-
+    // ================================================
 
     float position_tolerance = 0.1;
-    // float gain = 0.1f;
-
 
     int timer_count = 0;
     int64_t now = 0;
     int64_t last = 0;
-
     int timeout = 0;
 
-    std::cout << "Initializing the arm for velocity low-level control example" << std::endl;
+    mylogger.Log("Initializing the arm for velocity low-level control example", INFO);
     try
-    {
+    {   
         // Set the base in low-level servoing mode
         servoingMode.set_servoing_mode(k_api::Base::ServoingMode::LOW_LEVEL_SERVOING);
         base->SetServoingMode(servoingMode);
+        
         base_feedback = base_cyclic->RefreshFeedback();
-
-        int actuator_count = base->GetActuatorCount().count();
 
         // Initialize each actuator to its current position
         for(int i = 0; i < actuator_count; i++)
@@ -304,32 +328,13 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
             base_command.add_actuators()->set_position(base_feedback.actuators(i).position());
         }
 
-        // Define the callback function used in Refresh_callback
-        auto lambda_fct_callback = [](const Kinova::Api::Error &err, const k_api::BaseCyclic::Feedback data)
-        {
-            // We are printing the data of the moving actuator just for the example purpose,
-            // avoid this in a real-time loop
-            std::string serialized_data;
-            std::string output_data; 
-            // serialized_data = serialized_data.append("Joint[0]");
-            // google::protobuf::util::MessageToJsonString(data.actuators(0), &serialized_data);
-            // serialized_data = serialized_data.append("\nJoint[1]");
-            // google::protobuf::util::MessageToJsonString(data.actuators(1), &serialized_data);
-            // serialized_data = serialized_data.append("\nJoint[2]");
-            // google::protobuf::util::MessageToJsonString(data.actuators(2), &serialized_data);
-            // serialized_data = serialized_data.append("\nJoint[3]");
-            // google::protobuf::util::MessageToJsonString(data.actuators(3), &serialized_data);
-            // serialized_data = serialized_data.append("\nJoint[4]");
-            // google::protobuf::util::MessageToJsonString(data.actuators(4), &serialized_data);
-            // serialized_data = serialized_data.append("\nJoint[5]");
-            // google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
-            // std::cout << serialized_data << std::endl << std::endl;
-        };
-        // bool target_reached = false;
+        // TODO:    Confirm how we are flagging whether the actuator reached the current angle 
+        //          or if it reached the last waypoint (what variables are used)
+        //      -   How to ensure just bc one angle reached its target but the others, what to do
         int stage = 0;
         int atPosition = 0;
         int segments = waypointsDefinition.size();
-        std::cout << segments << std::endl << std::endl;
+        mylogger.Log("Segments" + std::to_string(segments), INFO);
         // Real-time loop
         while(timer_count < (time_duration * 1000))
         {
@@ -338,6 +343,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
             {
                 base_feedback = base_cyclic->RefreshFeedback();
                 atPosition = 0;
+                // PID LOOPS WOULD GO WITHIN HERE
                 for(int i = 0; i < actuator_count-1; i++)
                     {   
                     float current_pos = base_feedback.actuators(i).position();
@@ -442,15 +448,18 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                             atPosition++;
                         } 
                     }
-                    
+                // PID LOOPS ABOVE
+                
+
                 if(atPosition == 5){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
-                    
                 }
                 if(stage == segments){
                     break;
                 }
+
+                // 
                 try
                 {
                     base_cyclic->Refresh_callback(base_command, lambda_fct_callback, 0);
@@ -467,12 +476,12 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     }
     catch (k_api::KDetailedException& ex)
     {
-        std::cout << "Kortex error: " << ex.what() << std::endl;
+        mylogger.Log("Kortex error: " + std::string(ex.what()), ERR);
         return_status = false;
     }
     catch (std::runtime_error& ex2)
     {
-        std::cout << "Runtime error: " << ex2.what() << std::endl;
+        mylogger.Log("Runtime error: " + std::string(ex2.what()), ERR);
         return_status = false;
     }
  
@@ -490,16 +499,16 @@ void KortexRobot::printException(k_api::KDetailedException& ex)
 {
     // You can print the error informations and error codes
     auto error_info = ex.getErrorInfo().getError();
-    std::cout << "KDetailedoption detected what:  " << ex.what() << std::endl;
+    mylogger.Log("KDetailedoption detected what:  " + std::string(ex.what()), ERR);
     
-    std::cout << "KError error_code: " << error_info.error_code() << std::endl;
-    std::cout << "KError sub_code: " << error_info.error_sub_code() << std::endl;
-    std::cout << "KError sub_string: " << error_info.error_sub_string() << std::endl;
+    mylogger.Log("KError error_code: " + error_info.error_code(), ERR);
+    mylogger.Log("KError sub_code: " + error_info.error_sub_code(), ERR);
+    mylogger.Log("KError sub_string: " + error_info.error_sub_string(), ERR);
 
     // Error codes by themselves are not very verbose if you don't see their corresponding enum value
     // You can use google::protobuf helpers to get the string enum element for every error code and sub-code 
-    std::cout << "Error code string equivalent: " << k_api::ErrorCodes_Name(k_api::ErrorCodes(error_info.error_code())) << std::endl;
-    std::cout << "Error sub-code string equivalent: " << k_api::SubErrorCodes_Name(k_api::SubErrorCodes(error_info.error_sub_code())) << std::endl;
+    mylogger.Log("Error code string equivalent: " + k_api::ErrorCodes_Name(k_api::ErrorCodes(error_info.error_code())), ERR);
+    mylogger.Log("Error sub-code string equivalent: " + k_api::SubErrorCodes_Name(k_api::SubErrorCodes(error_info.error_sub_code())), ERR);
 }
 
 std::vector<vector<float>>
@@ -521,7 +530,6 @@ KortexRobot::convert_points_to_angles(std::vector<vector<float>> target_points)
 
     for (std::vector<float> current_target : target_points) 
     {
-
         // Object containing cartesian coordinates and Angle Guess
         k_api::Base::IKData input_IkData; 
         
@@ -546,8 +554,6 @@ KortexRobot::convert_points_to_angles(std::vector<vector<float>> target_points)
             }
             
         }
-
-
         // Computing Inverse Kinematics (cartesian -> Angle convert) from arm's current pose and joint angles guess
         k_api::Base::JointAngles computed_joint_angles;
         try
@@ -568,7 +574,6 @@ KortexRobot::convert_points_to_angles(std::vector<vector<float>> target_points)
 
         for (auto joint_angle : computed_joint_angles.joint_angles()) 
         {
-            
             // float temp_value = joint_angle.value();
             temp_joints[joint_identifier] = joint_angle.value();
             // std::cout << joint_identifier << " : " << joint_angle.value() << std::endl;
@@ -590,3 +595,4 @@ KortexRobot::convert_points_to_angles(std::vector<vector<float>> target_points)
     
     return final_joint_angles;
 }
+

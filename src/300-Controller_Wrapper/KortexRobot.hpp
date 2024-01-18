@@ -50,6 +50,7 @@ private:
     std::string username;
     std::string password;
     std::string output_folder;
+    int actuator_count;
 
 
 
@@ -87,9 +88,10 @@ public:
     std::vector<std::vector<float>> read_csv(const std::string &filename);
     std::vector<std::vector<float>> csv_to_cartesian_waypoints(std::vector<std::vector<float>> csv_waypoints, float kTheta_x, float kTheta_y, float kTheta_z);
 
+    Logger mylogger;
+
 protected:
 	//data
-    Logger mylogger;
 
 };
 
