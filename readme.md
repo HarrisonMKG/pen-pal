@@ -76,3 +76,15 @@ x_2,y_2,z_2
 ...
 x_n,y_n,z_n
 ```
+
+Executuion:
+Navigate to the `src` directory and run the following command:
+```
+./build-gcc-release/bin/my_file
+```
+Further arguements can also be passed:
+```
+-h,--help : provides a list of arguments
+-o,--output : provide output directory for log files
+-c,--coordiantes : provide csv coordiante data
+```
