@@ -25,6 +25,17 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 	KortexRobot::connect();
 }
 
+void KortexRobot::writing_mode()
+{
+    const float kTheta_x = -180.0;
+    const float kTheta_y = 0.0;
+    const float kTheta_z = 90.0;
+
+	auto current_pose = base->GetMeasuredCartesianPose();
+	vector<vector<float>> current_cartiesian = {{current_pose.x(),current_pose.y(),current_pose.z(),0,kTheta_x,kTheta_y,kTheta_z}}; 
+	KortexRobot::move_cartesian(current_cartiesian);
+	
+}
 void KortexRobot::connect()
 {
     // Create API objects
