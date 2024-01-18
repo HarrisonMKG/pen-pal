@@ -26,7 +26,7 @@ public:
             #if defined(_WIN32)
             result = mkdir(output_folder.c_str());
             #else 
-            result = mkdir(output_folder.c_str(), 777); // notice that 777 is different than 0777
+            result = mkdir(output_folder.c_str(), 775); // notice that 777 is different than0777
             #endif
 
             if (result == 0) {

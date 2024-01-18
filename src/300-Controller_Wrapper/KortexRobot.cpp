@@ -221,6 +221,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 		}
 	}
 
+
     
     std::vector<float> commands;
     std::vector<vector<float>> target_joint_angles = {
