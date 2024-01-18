@@ -4,7 +4,7 @@
 int main(int argc, char **argv)
 {
     auto parsed_args = ParseExampleArguments(argc, argv);
-	string coordinates_file = "../"+parsed_args.coordinates;
+	string coordinates_file = "../"+parsed_args.coordinates; // '../' to make path relative to the src directory
 
     Logger logger(parsed_args.output);
 
