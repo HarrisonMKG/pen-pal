@@ -22,7 +22,7 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 	KortexRobot::username = username;
 	KortexRobot::password = password;
 
-	KortexRobot::connect();
+	//KortexRobot::connect();
 }
 
 void KortexRobot::connect()
@@ -207,21 +207,37 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 {
     bool return_status = true;
     std::vector<vector<float>> target_joint_angles_IK;
-    target_joint_angles_IK = convert_points_to_angles(waypointsDefinition);
+
+    const float kTheta_x = -180.0;
+    const float kTheta_y = 0.0;
+    const float kTheta_z = 90.0;
+
 	int indx = 0;
    
     k_api::BaseCyclic::Feedback base_feedback;
     k_api::BaseCyclic::Command  base_command;
 
+	for (auto& point : waypointsDefinition)
+	{
+		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
+		if(point.size()>3){
+			point.erase(point.begin());// remove seconds value for IR sensor
+		}
+	}
+
+	//Print Modified Vector
+	cout << "Modified Vector" << endl;
 	for(auto point : waypointsDefinition)
 	{
+		cout << endl;
 		for(auto element : point)
 		{
-			cout<< "point" << element << endl;
+			cout<< element << " ";
 		}
 	}
 
 
+    target_joint_angles_IK = convert_points_to_angles(waypointsDefinition);
     
     std::vector<float> commands;
     std::vector<vector<float>> target_joint_angles = {
