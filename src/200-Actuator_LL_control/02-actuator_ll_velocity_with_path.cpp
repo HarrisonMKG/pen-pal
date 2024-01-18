@@ -270,54 +270,7 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     k_api::ControlConfig::ControlMode operation_mode = k_api::ControlConfig::ControlMode::ANGULAR_JOYSTICK;
 
     control_mode = control_config->GetControlMode();
- 
-    past_mode = actuator_config->GetControlMode(5);
-    std::cout<< past_mode.control_mode()<< std::endl;
-    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::VELOCITY);
-    // int actuator_device_id = 7;
-    actuator_config->SetControlMode(control_mode_message,1);
-    actuator_config->SetControlMode(control_mode_message,2);
-    actuator_config->SetControlMode(control_mode_message,3);
-    actuator_config->SetControlMode(control_mode_message,4);
-    actuator_config->SetControlMode(control_mode_message,5);
-    actuator_config->SetControlMode(control_mode_message,6);
-       std::cout<< "tested"<< std::endl;
-    // actuator_config->SetControlMode(control_mode_message,7);
-    past_mode = actuator_config->GetControlMode(5);
-    std::cout<< past_mode.control_mode()<< std::endl;
-    
-    // std::cout<< act_mode.control_mode()<< std::endl;
-    hard_limits = control_config->GetKinematicHardLimits();
-    soft_limits = control_config->GetKinematicSoftLimits(control_mode);
-    soft_angle_limits = control_config->GetAllKinematicSoftLimits();
-    // set_angle_limits = control_config ->SetTwistLinearSoftLimit();
-    std::cout<< "control mode is: "<< control_mode.control_mode() << std::endl;
-    std::cout<< "act control mode is: "<< act_mode.command_mode() << std::endl;
-    // control_mode.set_control_mode(operation_mode);
-    // control_loop.set_control_loop(operation_loop);
-    soft_limits = control_config->GetKinematicSoftLimits(control_mode);
-    //std::cout<< "control loop is: "<< control_loop.control_loop() << std::endl;
-    std::cout<< "the hard limits are: "<< hard_limits.twist_angular() << std::endl;
-    std::cout<< "the soft limits are: "<< soft_limits.twist_angular() << std::endl;
-    std::cout<< "the soft limits are: "<< soft_limits.twist_angular() << std::endl;
-    //soft_angle_limits.mutable_kinematic_limits_list(8) -> set_twist_angular(145.5f);
-    //control_config.mutable_kinematic_limits_list(9) -> set_twist_angular(-145.5f);
-    soft_angle_limits = control_config->GetAllKinematicSoftLimits();
-
-
-    for (int i = 0; i < 12; i++){
-        std::cout<< "pre setting:" << std::endl;
-        std::cout<< "the limit angle is : "<< soft_angle_limits.kinematic_limits_list(i).twist_angular() << std::endl;
-    }
-
-     for (int i = 0; i < 12; i++){
-        soft_angle_limits.mutable_kinematic_limits_list(i) -> set_twist_angular(20);
-    }
-
-    for (int i = 0; i < 12; i++){
-        std::cout<< "post setting" << std::endl;
-        std::cout<< "the limit angle is : "<< soft_angle_limits.kinematic_limits_list(i).twist_angular() << std::endl;
-    }
+    hard_limits = control_config->GetKinematicHardLimits(control_mode);
 
     const float kTheta_x = -180.0;
     const float kTheta_y = 0.0;
