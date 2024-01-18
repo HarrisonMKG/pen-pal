@@ -4,6 +4,7 @@
 int main(int argc, char **argv)
 {
     auto parsed_args = ParseExampleArguments(argc, argv);
+	string coordinates_file = "../coordinates/square_cartesian.csv";
 
     Logger logger("mylog");
 
@@ -14,7 +15,7 @@ int main(int argc, char **argv)
     logger.Log("This is a warning message1234.", 1);
     logger.Log("This is an error message1234.", 2);
 
-    vector<vector<float>> matrix = pen_pal.read_csv("../coordinates/square_cartesian.csv");
+    vector<vector<float>> matrix = pen_pal.read_csv(coordinates_file);
     pen_pal.move_cartesian(matrix);
 
     return 0;
