@@ -22,7 +22,7 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 	KortexRobot::username = username;
 	KortexRobot::password = password;
 
-	//KortexRobot::connect();
+	KortexRobot::connect();
 }
 
 void KortexRobot::connect()
