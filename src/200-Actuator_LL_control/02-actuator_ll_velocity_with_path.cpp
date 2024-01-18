@@ -263,6 +263,7 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     control_mode = control_config->GetControlMode();
     hard_limits = control_config->GetKinematicHardLimits();
 
+
     const float kTheta_x = -180.0;
     const float kTheta_y = 0.0;
     const float kTheta_z = 90.0;
