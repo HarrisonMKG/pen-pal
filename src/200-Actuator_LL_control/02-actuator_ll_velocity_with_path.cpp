@@ -20,6 +20,7 @@
 #include <BaseClientRpc.h>
 #include <BaseCyclicClientRpc.h>
 #include <ControlConfigClientRpc.h>
+#include <ActuatorConfigClientRpc.h>
 #include <SessionClientRpc.h>
 #include <SessionManager.h>
 
@@ -250,7 +251,7 @@ void example_move_to_home_position(k_api::Base::BaseClient* base)
     }
 }
 
-bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ControlConfig::ControlConfigClient* control_config)
+bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, k_api::BaseCyclic::BaseCyclicClient* base_cyclic, k_api::ControlConfig::ControlConfigClient* control_config,k_api::ActuatorConfig::ActuatorConfigClient* actuator_config)
 {
     bool return_status = true;
     string pattern = "Line";
@@ -259,9 +260,64 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
 
     // GET CONTROL CONFIG LIMITS 
     k_api::ControlConfig::ControlModeInformation control_mode;
+    k_api::ActuatorConfig::ControlModeInformation past_mode;
     k_api::ControlConfig::KinematicLimits hard_limits;
+    k_api::ControlConfig::KinematicLimits soft_limits;
+    k_api::ControlConfig::KinematicLimitsList soft_angle_limits;
+    k_api::ControlConfig::TwistLinearSoftLimit set_angle_limits;
+    auto act_mode = k_api::ActuatorConfig::CommandModeInformation();
+    auto control_mode_message = k_api::ActuatorConfig::ControlModeInformation();
+    k_api::ControlConfig::ControlMode operation_mode = k_api::ControlConfig::ControlMode::ANGULAR_JOYSTICK;
+
     control_mode = control_config->GetControlMode();
-    hard_limits = control_config->GetKinematicHardLimits(control_mode);
+ 
+    past_mode = actuator_config->GetControlMode(5);
+    std::cout<< past_mode.control_mode()<< std::endl;
+    control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::VELOCITY);
+    // int actuator_device_id = 7;
+    actuator_config->SetControlMode(control_mode_message,1);
+    actuator_config->SetControlMode(control_mode_message,2);
+    actuator_config->SetControlMode(control_mode_message,3);
+    actuator_config->SetControlMode(control_mode_message,4);
+    actuator_config->SetControlMode(control_mode_message,5);
+    actuator_config->SetControlMode(control_mode_message,6);
+       std::cout<< "tested"<< std::endl;
+    // actuator_config->SetControlMode(control_mode_message,7);
+    past_mode = actuator_config->GetControlMode(5);
+    std::cout<< past_mode.control_mode()<< std::endl;
+    
+    // std::cout<< act_mode.control_mode()<< std::endl;
+    hard_limits = control_config->GetKinematicHardLimits();
+    soft_limits = control_config->GetKinematicSoftLimits(control_mode);
+    soft_angle_limits = control_config->GetAllKinematicSoftLimits();
+    // set_angle_limits = control_config ->SetTwistLinearSoftLimit();
+    std::cout<< "control mode is: "<< control_mode.control_mode() << std::endl;
+    std::cout<< "act control mode is: "<< act_mode.command_mode() << std::endl;
+    // control_mode.set_control_mode(operation_mode);
+    // control_loop.set_control_loop(operation_loop);
+    soft_limits = control_config->GetKinematicSoftLimits(control_mode);
+    //std::cout<< "control loop is: "<< control_loop.control_loop() << std::endl;
+    std::cout<< "the hard limits are: "<< hard_limits.twist_angular() << std::endl;
+    std::cout<< "the soft limits are: "<< soft_limits.twist_angular() << std::endl;
+    std::cout<< "the soft limits are: "<< soft_limits.twist_angular() << std::endl;
+    //soft_angle_limits.mutable_kinematic_limits_list(8) -> set_twist_angular(145.5f);
+    //control_config.mutable_kinematic_limits_list(9) -> set_twist_angular(-145.5f);
+    soft_angle_limits = control_config->GetAllKinematicSoftLimits();
+
+
+    for (int i = 0; i < 12; i++){
+        std::cout<< "pre setting:" << std::endl;
+        std::cout<< "the limit angle is : "<< soft_angle_limits.kinematic_limits_list(i).twist_angular() << std::endl;
+    }
+
+     for (int i = 0; i < 12; i++){
+        soft_angle_limits.mutable_kinematic_limits_list(i) -> set_twist_angular(20);
+    }
+
+    for (int i = 0; i < 12; i++){
+        std::cout<< "post setting" << std::endl;
+        std::cout<< "the limit angle is : "<< soft_angle_limits.kinematic_limits_list(i).twist_angular() << std::endl;
+    }
 
     const float kTheta_x = -180.0;
     const float kTheta_y = 0.0;
@@ -338,9 +394,13 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
         // Set the base in low-level servoing mode
         servoingMode.set_servoing_mode(k_api::Base::ServoingMode::LOW_LEVEL_SERVOING);
         base->SetServoingMode(servoingMode);
+        std::cout<< "the servoing mode is: "<< servoingMode.servoing_mode() << std::endl;
         base_feedback = base_cyclic->RefreshFeedback();
 
         int actuator_count = base->GetActuatorCount().count();
+
+        //print limits
+        // std::cout << "Cartesian limts : "<< base->limitations() << std::endl;
 
         // Initialize each actuator to its current position
         for(int i = 0; i < actuator_count; i++)
@@ -385,9 +445,10 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
             {
                 base_feedback = base_cyclic->RefreshFeedback();
                 atPosition = 0;
-                for(int i = 0; i < actuator_count-1; i++)
+                for(int i = 4; i < 5; i++)
                     {   
                     float current_pos = base_feedback.actuators(i).position();
+
 
                     // float position_error = target_joint_angles[stage][i] - base_feedback.actuators(i).position();
                     float inverse_current_position = current_pos - 180; //Ex: 20 degrees
@@ -484,7 +545,10 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
                                     }
                                 }
                             }
-                            base_command.mutable_actuators(i)->set_position(new_position);
+                            base_command.mutable_actuators(i)->set_position(base_feedback.actuators(i).position());
+                            base_command.mutable_actuators(i)->set_velocity(5.0f);
+
+                            
                         }else{
                             atPosition++;
                         } 
@@ -568,9 +632,9 @@ int main(int argc, char **argv)
     auto base_cyclic = new k_api::BaseCyclic::BaseCyclicClient(router_real_time);
 
     auto control_config = new k_api::ControlConfig::ControlConfigClient(router);
-
+    auto actuator_config = new k_api::ActuatorConfig::ActuatorConfigClient(router);
     // Example core
-    auto isOk = example_actuator_low_level_velocity_control(base, base_cyclic, control_config);
+    auto isOk = example_actuator_low_level_velocity_control(base, base_cyclic, control_config, actuator_config);
     if (!isOk)
     {
         std::cout << "There has been an unexpected error in example_cyclic_armbase() function." << std::endl;
