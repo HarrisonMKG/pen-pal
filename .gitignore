@@ -4,3 +4,4 @@ kortex_api*.zip
 .vscode/
 __pycache__/
 *venv/
+log*.txt
