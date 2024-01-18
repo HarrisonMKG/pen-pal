@@ -4,9 +4,9 @@
 int main(int argc, char **argv)
 {
     auto parsed_args = ParseExampleArguments(argc, argv);
-	string coordinates_file = "../coordinates/square_cartesian.csv";
+	string coordinates_file = "../"+parsed_args.coordinates;
 
-    Logger logger("mylog");
+    Logger logger(parsed_args.output);
 
     KortexRobot pen_pal(parsed_args.ip_address,parsed_args.username,parsed_args.password);
     pen_pal.go_home();
