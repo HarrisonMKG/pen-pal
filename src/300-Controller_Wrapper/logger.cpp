@@ -22,7 +22,14 @@ public:
 
         // Checking if folder exits, if not, create one
         if (stat(output_folder.c_str(), &st) != 0) {
-            if (mkdir(output_folder.c_str()) == 0) {
+            int result = 0;
+            #if defined(_WIN32)
+            result = mkdir(output_folder.c_str());
+            #else 
+            result = mkdir(strPath.c_str(), 0777); // notice that 777 is different than 0777
+            #endif
+
+            if (result == 0) {
                 std::cout << "Created output folder: '" << output_folder << "'. All log files will be stored there" << std::endl;
             }else {
                 std::cerr << "Failed to create folder '" << output_folder << "'." << std::endl;
