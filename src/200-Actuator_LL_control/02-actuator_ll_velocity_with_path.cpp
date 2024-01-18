@@ -449,7 +449,7 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
             {
                 base_feedback = base_cyclic->RefreshFeedback();
                 atPosition = 0;
-                for(int i = 0; i < actuator_count-1; i++)
+                for(int i = 4; i < 5; i++)
                     {   
                     float current_pos = base_feedback.actuators(i).position();
 
