@@ -206,12 +206,20 @@ int64_t KortexRobot::GetTickUs()
 bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition)
 {
     bool return_status = true;
-    // Move arm to ready position
     std::vector<vector<float>> target_joint_angles_IK;
     target_joint_angles_IK = convert_points_to_angles(waypointsDefinition);
+	int indx = 0;
    
     k_api::BaseCyclic::Feedback base_feedback;
     k_api::BaseCyclic::Command  base_command;
+
+	for(auto point : waypointsDefinition)
+	{
+		for(auto element : point)
+		{
+			cout<< "point" << element << endl;
+		}
+	}
 
     
     std::vector<float> commands;
