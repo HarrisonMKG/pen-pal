@@ -14,6 +14,9 @@
 
 #include <BaseClientRpc.h>
 #include <BaseCyclicClientRpc.h>
+#include <ControlConfigClientRpc.h>
+#include <ActuatorConfigClientRpc.h>
+#include <DeviceConfigClientRpc.h>
 #include <SessionClientRpc.h>
 #include <SessionManager.h>
 
@@ -47,8 +50,7 @@ private:
     std::string ip_address;
     std::string username;
     std::string password;
-
-
+    
 
     k_api::TransportClientTcp* transport;
     k_api::RouterClient* router;
@@ -62,14 +64,19 @@ private:
 
     k_api::Base::BaseClient* base;
     k_api::BaseCyclic::BaseCyclicClient* base_cyclic;
-	
+
+    
+    k_api::ActuatorConfig::ActuatorConfigClient* actuator_config;
+    k_api::DeviceConfig::DeviceConfigClient* device_config;
+	k_api::ControlConfig::ControlConfigClient* control_config;
+
+
 	std::function<void(k_api::Base::ActionNotification)>
 	check_for_end_or_abort(bool& finished);
 	void printException(k_api::KDetailedException& ex);
 
 	int64_t GetTickUs();
-	std::vector<vector<float>>
-	convert_points_to_angles(std::vector<vector<float>> target_points);
+	// std::vector<vector<float>>
 
 
 public:
@@ -78,13 +85,32 @@ public:
 	void connect();
 	void disconnect();
     ~KortexRobot();
+    void set_actuator_control_mode(int mode_control);
 
 	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition);
+	std::vector<std::vector<float>> convert_points_to_angles(std::vector<vector<float>> target_points);
 	
     std::vector<std::vector<float>> read_csv(const std::string &filename);
+    std::vector<std::vector<float>> convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, 
+                                                                        float kTheta_x, float kTheta_y, 
+                                                                        float kTheta_z);
+    // get_lambda_feedback_callback();
 
+    void output_arm_limits_and_mode();
+
+
+    // PID LOOPS
+    std::vector<float> pid_small_motors(float target_pos, float current_pos, float base_velocity);
+    std::vector<float> pid_motor_0(float target_pos, float current_pos, float base_velocity);
+    std::vector<float> pid_motor_1_2(float target_pos, float current_pos, float base_velocity);
+
+    int actuator_count;
+
+    
 protected:
 	//data
+    
+
 };
 
 #endif // KORTEXROBOT_HPP
