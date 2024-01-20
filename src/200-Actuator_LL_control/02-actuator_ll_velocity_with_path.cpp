@@ -270,7 +270,7 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     k_api::ControlConfig::ControlMode operation_mode = k_api::ControlConfig::ControlMode::ANGULAR_JOYSTICK;
 
     control_mode = control_config->GetControlMode();
-    hard_limits = control_config->GetKinematicHardLimits(control_mode);
+    //hard_limits = control_config->GetKinematicHardLimits(control_mode);
 
     const float kTheta_x = -180.0;
     const float kTheta_y = 0.0;
