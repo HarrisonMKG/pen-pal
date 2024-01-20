@@ -39,7 +39,7 @@ void KortexRobot::writing_mode()
     const float kTheta_z = 90.0;
 
 	auto current_pose = base->GetMeasuredCartesianPose();
-	vector<vector<float>> current_cartiesian = {{current_pose.x(),current_pose.y(),current_pose.z(),0,kTheta_x,kTheta_y,kTheta_z}}; 
+	vector<vector<float>> current_cartiesian = {{current_pose.x(),current_pose.y(),current_pose.z()}}; 
 	KortexRobot::move_cartesian(current_cartiesian);
 	
 }
@@ -153,10 +153,11 @@ std::vector<std::vector<float>> KortexRobot::csv_to_cartesian_waypoints(std::vec
 {
     for (auto& point : csv_waypoints)
 	{
-		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
+		std::cout<< "point size :" << point.size() << std::endl;
 		if(point.size()>3){
 			point.erase(point.begin());// remove seconds value for IR sensor
 		}
+		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
 	}
     return csv_waypoints;
 }
@@ -392,21 +393,21 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                                             if ((target_joint_angles_IK[stage][i] > inverse_current_position && target_joint_angles_IK[stage][i] < current_pos)){
                                                 // Turn left
                                                 new_position = current_pos - 0.01*30.0f;
-                                                std::cout << "(LEFT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
+                                                //std::cout << "(LEFT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
                                                 
                                             } else {
                                                 // Turn Right
-                                                std::cout << "(RIGHT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
+                                                //std::cout << "(RIGHT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
                                                 new_position = current_pos + 0.01*30.0f;
                                             }
                                         } else {
                                             if (target_joint_angles_IK[stage][i] < inverse_current_position && target_joint_angles_IK[stage][i] > current_pos){
                                                 // Turn left
-                                                std::cout << "(RIGHT-I) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
+                                                //std::cout << "(RIGHT-I) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
                                                 new_position = current_pos + 0.01*30.0f;
                                             } else {
                                                 // Turn Right
-                                                std::cout << "(LEFT-I) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
+                                                //std::cout << "(LEFT-I) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
                                                 new_position = current_pos - 0.01*30.0f;
                                             }
                                         }
