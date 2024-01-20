@@ -22,7 +22,6 @@ public:
 
     Logger(const std::string& filename_prefix = "output_log", bool dontLog = false);
     ~Logger();
-    bool create_folder_and_files(const std::string& output_folder = "log_folder", const std::string& filename_prefix = "log", bool dontLog = false);
 
     void Log(std::string& message, int level = 0);
     void LogToFile(const std::string& message, std::ofstream file_name);
