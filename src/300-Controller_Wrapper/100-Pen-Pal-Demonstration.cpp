@@ -8,10 +8,14 @@ int main(int argc, char **argv)
     KortexRobot pen_pal(parsed_args.ip_address,parsed_args.username,parsed_args.password, "output_dir");
     pen_pal.mylogger.Log("Running Go home command", INFO);
     pen_pal.go_home();
-    pen_pal.mylogger.Log("Go home completed. Executing Read Csv using filename: " + coordinates_file, INFO);
-	  pen_pal.writing_mode();
+    pen_pal.mylogger.Log("Go home completed");
+    pen_pal.mylogger.Log("Entering Writing Mode");
+	pen_pal.writing_mode();
+    pen_pal.mylogger.Log("Writing Mode activated");
+    pen_pal.mylogger.Log("Executing Read Csv using filename: " + coordinates_file, INFO);
   
     vector<vector<float>> matrix = pen_pal.read_csv(coordinates_file);
+    pen_pal.mylogger.Log("Read CSV complete");
     pen_pal.mylogger.Log("Executing Move cartesian.", INFO);
 
     pen_pal.move_cartesian(matrix);
