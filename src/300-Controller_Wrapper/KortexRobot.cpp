@@ -21,10 +21,6 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 	KortexRobot::ip_address = ip_address;
 	KortexRobot::username = username;
 	KortexRobot::password = password;
-
-	auto current_pose = base->GetMeasuredCartesianPose();
-	vector<vector<float>> current_cartiesian = {{current_pose.x(),current_pose.y(),current_pose.z()}}; 
-	KortexRobot::move_cartesian(current_cartiesian);
 	
 	KortexRobot::connect();
 }
@@ -99,6 +95,7 @@ KortexRobot::~KortexRobot()
     delete transport_real_time;
 }
 
+/*
 std::vector<std::vector<float>> KortexRobot::csv_to_cartesian_waypoints(std::vector<std::vector<float>> csv_waypoints, 
                                                                         float kTheta_x, float kTheta_y, float kTheta_z) 
 {
@@ -111,6 +108,18 @@ std::vector<std::vector<float>> KortexRobot::csv_to_cartesian_waypoints(std::vec
 		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
 	}
     return csv_waypoints;
+}
+*/
+
+void KortexRobot::writing_mode()
+{
+    float kTheta_x = 0.0;
+    float kTheta_y = -180.0;
+    float kTheta_z = 90.0;
+
+	auto current_pose = base->GetMeasuredCartesianPose();
+	vector<vector<float>> current_cartiesian = {{current_pose.x(),current_pose.y(),current_pose.z()}}; 
+	KortexRobot::move_cartesian(current_cartiesian,kTheta_x,kTheta_y,kTheta_z);
 }
 
 
@@ -252,16 +261,16 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 	return result;
 }
 
-std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, float kTheta_x = -180.0f,
-                                                                    float kTheta_y = 0.0f, float kTheta_z = 90.0f) {
+std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, float kTheta_x,
+                                                                    float kTheta_y, float kTheta_z) {
     bool verbose = false; 
     // Assuming the format of the csv_file will be in (time, x, y, z) for each line
     for (auto& point : csv_points)
 	{
-		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
 		if(point.size()>3){
 			point.erase(point.begin());// remove seconds value for IR sensor
 		}
+		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
 	}
     if (verbose) {
         cout << "Modified Vector" << endl;
@@ -277,105 +286,113 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
     return csv_points;
 }
 
-bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition)
+bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition, float kTheta_x, 
+		float kTheta_y, float kTheta_z)
 {
-    bool return_status = true;
-    int timer_count = 0;
-    int timeout = 0;
-    int64_t now = 0;
-    int64_t last = 0;
-    
-    set_actuator_control_mode(k_api::ActuatorConfig::ControlMode::VELOCITY);
+    // Define the callback function used in Refresh_callback
+    auto lambda_fct_callback = [](const Kinova::Api::Error &err, const k_api::BaseCyclic::Feedback data)
+    {
+        // TODO: Remove this in a real-time loop
+		/*
+        std::string serialized_data;
+        std::string output_data; 
+        serialized_data.append("Joint[0]");
+        google::protobuf::util::MessageToJsonString(data.actuators(0), &serialized_data);
+        serialized_data.append("\nJoint[1]");
+        google::protobuf::util::MessageToJsonString(data.actuators(1), &serialized_data);
+        serialized_data.append("\nJoint[2]");
+        google::protobuf::util::MessageToJsonString(data.actuators(2), &serialized_data);
+        serialized_data.append("\nJoint[3]");
+        google::protobuf::util::MessageToJsonString(data.actuators(3), &serialized_data);
+        serialized_data.append("\nJoint[4]");
+        google::protobuf::util::MessageToJsonString(data.actuators(4), &serialized_data);
+        serialized_data.append("\nJoint[5]");
+        google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
+        std::cout << serialized_data << std::endl << std::endl;
+    */
+		};
 
+    bool return_status = true;
     k_api::BaseCyclic::Feedback base_feedback;
     k_api::BaseCyclic::Command  base_command;
-    // Use to switch base from low level to high level
+    std::vector<float> commands;
+
+    
     auto servoingMode = k_api::Base::ServoingModeInformation();
-    
-    std::vector<std::vector<float>> target_joint_angles_IK;
-    std::vector<std::vector<float>> target_cartesian_wp;
+   
+    // ================================================
+    // ONE FUNCTION - Takes in waypoints from a csv, turns them into cartesian co-ordinates 
+    // with specified orientation and then performs IK to get the target joint angles
+    std::vector<vector<float>> target_joint_angles_IK;
 
-    // TODO: Probably make this part of the class as it could be set and used in multiple functions
-    float position_tolerance = 0.1f;
-    float max_position_err = 10.0f;
-    // Take the waypoints from csv, convert to cartesian waypoints and then joint angles
-    const float kTheta_x = -180.0;
-    const float kTheta_y = 0.0;
-    const float kTheta_z = 90.0;
-    
-    // TODO:    These heights were included in the original example. If we are setting the zheight/position to be fixed
-    //          Then we should modify the convert_csv_to_cart_wp, to add param w fixed values, or another function to 
-    //          handle this change
-    // const float zHeight = 0.15f;
-    // const float zHeight_line = 0.266f;
+    waypointsDefinition = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
+    target_joint_angles_IK = convert_points_to_angles(waypointsDefinition);
 
-    target_cartesian_wp = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
-    target_joint_angles_IK = convert_points_to_angles(target_cartesian_wp);
+	   
+    // TODO:    Keep for now, likely add a way to verify some of the test examples have their IK
+    //          Angles correctly generated
+    // std::vector<vector<float>> reference_joint_angles = {
+    //                                                     {325.551, 59.2881, 294.432, 178.533, 54.9385, 235.541},
+    //                                                     {305.869,42.0627,251.539,177.517,29.3456,216.948},
+    //                                                     {54.8453,42.3845,251.666,177.292,29.2051,326.074},
+    //                                                     {35.5099,59.507,294.507,178.444,54.8327,305.565},
+    //                                                     {325.551, 59.2881, 294.432, 178.533, 54.9385, 235.541}
+    //                                                 };
 
-    // TODO: Uncomment to review the output angles
-    // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-     
-    std::cout << "Initializing the arm for velocity low-level control example" << std::endl;
+    for (int i = 0; i < target_joint_angles_IK.size(); i++)
+    {   
+        std::cout << "IK vs Premade generated Angles:" << i << std::endl;
+        for (auto currAngle: target_joint_angles_IK[i]){
+            std::cout << currAngle << ", ";
+        }
+        std::cout << std::endl;
+    }
+    // Delay to allow for us to confirm angles being given to robot
+    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+
+    // ================================================
+
+    float position_tolerance = 0.1;
+
+    int timer_count = 0;
+    int64_t now = 0;
+    int64_t last = 0;
+    int timeout = 0;
+
+    //mylogger.Log("Initializing the arm for velocity low-level control example", INFO);
     try
-    {
+    {   
         // Set the base in low-level servoing mode
         servoingMode.set_servoing_mode(k_api::Base::ServoingMode::LOW_LEVEL_SERVOING);
         base->SetServoingMode(servoingMode);
+        
         base_feedback = base_cyclic->RefreshFeedback();
 
         // Initialize each actuator to its current position
         for(int i = 0; i < actuator_count; i++)
         {
+            commands.push_back(base_feedback.actuators(i).position());
             base_command.add_actuators()->set_position(base_feedback.actuators(i).position());
         }
 
-        // Define the callback function used in Refresh_callback
-        // TODO:    Tbh Not sure if this will work. If it doesnt, just paste the function back directly here
-        // auto lambda_fct_callback = get_lambda_feedback_callback();
-
-        auto lambda_fct_callback = [](const Kinova::Api::Error &err, const k_api::BaseCyclic::Feedback data)
-        {
-            // We are printing the data of the moving actuator just for the example purpose,
-            // avoid this in a real-time loop
-            std::string serialized_data;
-            std::string output_data; 
-            // serialized_data = serialized_data.append("Joint[0]");
-            // google::protobuf::util::MessageToJsonString(data.actuators(0), &serialized_data);
-            // serialized_data = serialized_data.append("\nJoint[1]");
-            // google::protobuf::util::MessageToJsonString(data.actuators(1), &serialized_data);
-            // serialized_data = serialized_data.append("\nJoint[2]");
-            // google::protobuf::util::MessageToJsonString(data.actuators(2), &serialized_data);
-            // serialized_data = serialized_data.append("\nJoint[3]");
-            // google::protobuf::util::MessageToJsonString(data.actuators(3), &serialized_data);
-            // serialized_data = serialized_data.append("\nJoint[4]");
-            // google::protobuf::util::MessageToJsonString(data.actuators(4), &serialized_data);
-            // serialized_data = serialized_data.append("\nJoint[5]");
-            // google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
-            // std::cout << serialized_data << std::endl << std::endl;
-        };
-
-        // TODO:    Following should be in some sort of structure where we have a separate velocity for each actuator
-        //          Include a flag for each actuator if it reached its target  
+        // TODO:    Confirm how we are flagging whether the actuator reached the current angle 
+        //          or if it reached the last waypoint (what variables are used)
+        //      -   How to ensure just bc one angle reached its target but the others, what to do
         int stage = 0;
         int atPosition = 0;
-        float larger_velocity = 30.0f;
-        float smaller_velocity = 10.0f;
-        int num_of_targets = waypointsDefinition.size();
-        std::cout << num_of_targets << std::endl << std::endl;
-
+        int segments = waypointsDefinition.size();
+        //mylogger.Log("Segments" + std::to_string(segments), INFO);
         // Real-time loop
         while(timer_count < (time_duration * 1000))
         {
             now = GetTickUs();
-            if(now - last > 1000)
+            if(now - last > 1000 )
             {
-                // Get initial feedback
                 base_feedback = base_cyclic->RefreshFeedback();
                 atPosition = 0;
-                // TODO: We were using this before, isnt this for one actuator only? was it for a test?
-                // for(int i = 4; i < 5; i++)
+                // PID LOOPS WOULD GO WITHIN HERE
                 for(int i = 0; i < actuator_count-1; i++)
-                {   
+                    {   
                     float current_pos = base_feedback.actuators(i).position();
 
                     // float position_error = target_joint_angles[stage][i] - base_feedback.actuators(i).position();
@@ -411,21 +428,21 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                                             if ((target_joint_angles_IK[stage][i] > inverse_current_position && target_joint_angles_IK[stage][i] < current_pos)){
                                                 // Turn left
                                                 new_position = current_pos - 0.01*30.0f;
-                                                //std::cout << "(LEFT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
+                                                std::cout << "(LEFT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
                                                 
                                             } else {
                                                 // Turn Right
-                                                //std::cout << "(RIGHT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
+                                                std::cout << "(RIGHT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
                                                 new_position = current_pos + 0.01*30.0f;
                                             }
                                         } else {
                                             if (target_joint_angles_IK[stage][i] < inverse_current_position && target_joint_angles_IK[stage][i] > current_pos){
                                                 // Turn left
-                                                //std::cout << "(RIGHT-I) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
+                                                std::cout << "(RIGHT-I) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
                                                 new_position = current_pos + 0.01*30.0f;
                                             } else {
                                                 // Turn Right
-                                                //std::cout << "(LEFT-I) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
+                                                std::cout << "(LEFT-I) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
                                                 new_position = current_pos - 0.01*30.0f;
                                             }
                                         }
@@ -440,63 +457,56 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                                             //     if(i == 0){
                                             //         std::cout << "turning right" <<stage << std::endl << std::endl;
                                             //     }
-=======
-                    float target_position = target_joint_angles_IK[stage][i];
-                    float position_error = target_position - current_pos;
-                    float large_small_velocity;
-                    std::vector<float> new_position_velocity(2, 0.0f);
-
-                    // TODO:    Replace each float with new_position_velocity since that is what the PID loops currently return. 
-                    //          If we setup a class then this will change
-                    // float new_position = 0.0;
-                    // float new_velocity = 0.0;
-
-                    if (std::abs(position_error) > position_tolerance) {
-                        // adjust velocity updating joints with depending on distance from waypoint
-                        if (std::abs(position_error) > max_position_err){
-                            large_small_velocity = larger_velocity;
-                        } else {
-                            large_small_velocity = smaller_velocity;
-                        }
-
-                        // TODO: Call all PID loops depending on the actuator index below
-                        if(i != 0 && i != 1 && i != 2){
-                            // Call PIDS for the joints 4, 5, 6
-                            new_position_velocity = pid_small_motors(target_position, current_pos, large_small_velocity);
-                        }else if (i == 0){
-                            // Joint 0
-                            new_position_velocity = pid_motor_0(target_position, current_pos, large_small_velocity);    
-                        }
-                        else {
-                            // Joint 1 & 2
-                            new_position_velocity = pid_motor_1_2(target_position, current_pos, large_small_velocity);
-                        }
->>>>>>> dev-refactor-low-level
                             
-                        // TODO:    Are we not changing setting the position to anything? Like is the line below needed?
-                        //          If it is not needed then the PID loops can be updated to only return the velocities 
-                        //          (new position not needed, but all of this will likely change w new PID's)
-                        base_command.mutable_actuators(i)->set_position(base_feedback.actuators(i).position());
-                        base_command.mutable_actuators(i)->set_velocity(new_position_velocity[1]);
-                        
-                    }else{
-                        // TODO: Same as comment as above.
-                        base_command.mutable_actuators(i)->set_position(base_feedback.actuators(i).position());
-                        base_command.mutable_actuators(i)->set_velocity(0);
-                        atPosition++;
-                    } 
-                }//end for loop
+                                            // }
+                                        }else{
+                                            // if(i == 0 && (abs(position_error) > 360 + target_joint_angles_IK[stage][i] - base_feedback.actuators(i).position())){
+                                            // new_position = current_pos + 0.01*30.0f;
+                                            // std::cout << "roll over right: " <<stage << std::endl << std::endl;
+                                            // }else{
+                                            new_position = current_pos - 0.01*30.0f;
+                                                // if(i == 0){
+                                                //     std::cout << "turning left" <<stage << std::endl << std::endl;
+                                                // }
+                                            // }
+                                        }
+                                    }
+                                }
+                            }else{
+                                //slows down because were in threshold area
+                                if(i != 0 && i != 1 && i != 2){
+                                    //speed limit for smaller motors
+                                    if(position_error > 0.0f){
+                                    new_position = current_pos + 0.01*10.0f;
+                                    }else{
+                                    new_position = current_pos - 0.01*10.0f;
+                                    }
+                                }else{
+                                    //speed limits for bigger motor
+                                    if(position_error > 0.0f){
+                                    new_position = current_pos + 0.01*10.0f;
+                                    }else{
+                                    new_position = current_pos - 0.01*10.0f;    
+                                    }
+                                }
+                            }
+                            base_command.mutable_actuators(i)->set_position(new_position);
+                        }else{
+                            atPosition++;
+                        } 
+                    }
+                // PID LOOPS ABOVE
+                
 
-                // If all 5 joints are at target position, Increment counter of waypoints completed
-                // TODO: If we make a structure and flags for each actuator these conditions need to be updated
                 if(atPosition == 5){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                 }
-                // Check if final target was reached
-                if(stage == num_of_targets){
+                if(stage == segments){
                     break;
                 }
+
+                // 
                 try
                 {
                     base_cyclic->Refresh_callback(base_command, lambda_fct_callback, 0);
@@ -513,18 +523,15 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     }
     catch (k_api::KDetailedException& ex)
     {
-        std::cout << "Kortex error: " << ex.what() << std::endl;
+        //mylogger.Log("Kortex error: " + std::string(ex.what()), ERR);
         return_status = false;
     }
     catch (std::runtime_error& ex2)
     {
-        std::cout << "Runtime error: " << ex2.what() << std::endl;
+        //mylogger.Log("Runtime error: " + std::string(ex2.what()), ERR);
         return_status = false;
     }
-    
-    // TODO: Is this needed to be set back at the end?
-    set_actuator_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
-    
+ 
     // Set back the servoing mode to Single Level Servoing
     servoingMode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
     base->SetServoingMode(servoingMode);
@@ -534,6 +541,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 
     return return_status;
 }
+
 
 void KortexRobot::printException(k_api::KDetailedException& ex)
 {
@@ -580,12 +588,14 @@ std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vecto
         k_api::Base::JointAngles computed_joint_angles;
         
         // Fill the IKData Object with the cartesian coordinates that need to be converted
+		
         input_IkData.mutable_cartesian_pose()->set_x(current_target[0]);
         input_IkData.mutable_cartesian_pose()->set_y(current_target[1]);
         input_IkData.mutable_cartesian_pose()->set_z(current_target[2]);
-        input_IkData.mutable_cartesian_pose()->set_theta_x(current_target[3]);
-        input_IkData.mutable_cartesian_pose()->set_theta_y(current_target[4]);
-        input_IkData.mutable_cartesian_pose()->set_theta_z(current_target[5]);
+
+        input_IkData.mutable_cartesian_pose()->set_theta_x(current_target[4]);
+        input_IkData.mutable_cartesian_pose()->set_theta_y(current_target[5]);
+        input_IkData.mutable_cartesian_pose()->set_theta_z(current_target[6]);
 
         // Fill the IKData Object with the guessed joint angles
         for(auto joint_angle : input_joint_angles.joint_angles())

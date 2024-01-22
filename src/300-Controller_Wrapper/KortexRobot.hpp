@@ -86,8 +86,10 @@ public:
 	void disconnect();
     ~KortexRobot();
     void set_actuator_control_mode(int mode_control);
+	void writing_mode();
+	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition,
+					float kTheta_x = 0.0f, float kTheta_y = -180.0f, float kTheta_z = 90.0f);
 
-	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition);
 	std::vector<std::vector<float>> convert_points_to_angles(std::vector<vector<float>> target_points);
 	
     std::vector<std::vector<float>> read_csv(const std::string &filename);
