@@ -271,6 +271,7 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
     // auto safety_status = k_api::DeviceConfig::ControlModeInformation();
     k_api::ControlConfig::ControlMode operation_mode = k_api::ControlConfig::ControlMode::ANGULAR_JOYSTICK;
     control_mode = control_config->GetControlMode();
+    //hard_limits = control_config->GetKinematicHardLimits(control_mode);
     past_mode = actuator_config->GetControlMode(5);
     // safety_status = device_config ->GetSafetyStatus();
     device_config -> ClearAllSafetyStatus();
