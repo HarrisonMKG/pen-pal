@@ -8,6 +8,7 @@
 #include <vector>
 #include <cmath>
 #include <fstream>
+#include <numeric>
 #include <sstream>
 
 #include <KDetailedException.h>
@@ -77,8 +78,6 @@ private:
 	void printException(k_api::KDetailedException& ex);
 
 	int64_t GetTickUs();
-	// std::vector<vector<float>>
-
 
 public:
     KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password);
@@ -103,7 +102,7 @@ public:
 
 
     // PID LOOPS
-    std::vector<float> pid_small_motors(float target_pos, float current_pos, float base_velocity);
+    std::vector<float> pid_small_motors(float target_pos, float current_pos, float base_velocity,int motor);
     std::vector<float> pid_motor_0(float target_pos, float current_pos, float base_velocity);
     std::vector<float> pid_motor_1_2(float target_pos, float current_pos, float base_velocity);
 

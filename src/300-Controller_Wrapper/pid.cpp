@@ -22,18 +22,15 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 	//PID Controller calculations
 
 	float error = setPoint - currentLocation;
-
 	// Proportional term
 	float P = k_p * error;
-
 	// Integral term
+	float integral;
 	integral += error * dt;
 	float I = k_i * integral;
-
 	// Derivative term
 	derivative = (error - prevErr) / dt;
-	float D = k_d * derivative; 
-
+	float D = k_d * derivative; 	
 	// Control signal after PID controller interference
 	float controlSignal = P + I + D;
 	
