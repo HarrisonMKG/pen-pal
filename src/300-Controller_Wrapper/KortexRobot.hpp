@@ -27,6 +27,7 @@
 #include <google/protobuf/util/json_util.h>
 
 #include "utilities.h"
+#include "pid.cpp"
 
 #if defined(_MSC_VER)
 #include <Windows.h>
@@ -107,8 +108,9 @@ public:
     std::vector<float> pid_motor_1_2(float target_pos, float current_pos, float base_velocity);
 
     int actuator_count;
+    Pid_Loop pid_acc_0;
 
-    
+
 protected:
 	//data
     

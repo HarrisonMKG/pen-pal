@@ -21,7 +21,6 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 	KortexRobot::ip_address = ip_address;
 	KortexRobot::username = username;
 	KortexRobot::password = password;
-	
 	KortexRobot::connect();
 }
 
@@ -63,6 +62,10 @@ void KortexRobot::connect()
     //resets all current errors
     device_config -> ClearAllSafetyStatus();
     std::cout << "Cleared all errors on Robot" << std::endl;
+
+
+	pid_acc_0.config_params(0.1, 0.1, 0.1, 0.001);
+
 }
 
 void KortexRobot::disconnect()
@@ -367,19 +370,13 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 base_feedback = base_cyclic->RefreshFeedback();
                 atPosition = 0;
                 // PID LOOPS WOULD GO WITHIN HERE
-                for(int i = 0; i < actuator_count-1; i++)
+                for(int i = 0; i < actuator_count; i++)
                     {   
                     float current_pos = base_feedback.actuators(i).position();
                     float target_pos = target_joint_angles_IK[stage][i];
                     float position_error = target_pos - current_pos;
                     float update_velocity;
                     std::vector<float> new_position_velocity(2,0.0f);
-
-                    // float inverse_current_position = current_pos - 180; //Ex: 20 degrees
-                    // if (inverse_current_position < 0)
-                    // {
-                    //     inverse_current_position += 360.0; //Ex: 200 degrees
-                    // }
                     
                         if (std::abs(position_error) > position_tolerance) {
                             if (std::abs(position_error) > closer_range_limit) {
@@ -387,8 +384,14 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                             } else {
                                 update_velocity = smaller_velocity;
                             }
-
-                            if (i > 2) {
+                            if (i == actuator_count - 1){
+                                // Current PID only outputs one float (using position now)
+                                float temp_adjustment = pid_acc_0.calculate_pid(current_pos, target_pos, 5);
+                                std::cout << "Updating Last index: " <<temp_adjustment << std::endl;
+                                // Call old functions to get the vector format
+                                new_position_velocity = pid_small_motors(target_pos, current_pos, update_velocity);
+                                new_position_velocity[0] =  current_pos + temp_adjustment;
+                            }else if (i > 2) {
                                 new_position_velocity = pid_small_motors(target_pos, current_pos, update_velocity);
                             } else if (i == 0) {
                                 new_position_velocity = pid_motor_0(target_pos, current_pos, update_velocity);
@@ -396,92 +399,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                                 new_position_velocity = pid_motor_1_2(target_pos, current_pos, update_velocity);
                             }
 
-                            // if (std::abs(position_error) > 10.0f){
-                            //     // TODO: Check if these are thecorrect joints, or update the comment below
-                            //     // Joint 0 CAN go 360
-                            //     if(i != 0 && i != 1 && i != 2){
-                            //         //if the motors cant go full 360
-                            //         if(position_error > 0.0f){
-                            //             if (target_joint_angles_IK[stage][i] > 120 && i == 4){
-                            //                 new_position = current_pos - 0.01*60.0f;
-                            //             }else{
-                            //             new_position = current_pos + 0.01*60.0f;}
-                            //         }else{
-                            //             new_position = current_pos - 0.01*60.0f;
-                            //         }
-                                    
-                            //     }else{
-                            //         //if motors can go full 360 with roll over protection for base
-                            //         if (i == 0){
-                            //             // Find what side the arm is on
-                            //             if (current_pos > 180){
-                            //                 if ((target_joint_angles_IK[stage][i] > inverse_current_position && target_joint_angles_IK[stage][i] < current_pos)){
-                            //                     // Turn left
-                            //                     new_position = current_pos - 0.01*30.0f;
-                            //                     std::cout << "(LEFT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
-                                                
-                            //                 } else {
-                            //                     // Turn Right
-                            //                     std::cout << "(RIGHT-N) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
-                            //                     new_position = current_pos + 0.01*30.0f;
-                            //                 }
-                            //             } else {
-                            //                 if (target_joint_angles_IK[stage][i] < inverse_current_position && target_joint_angles_IK[stage][i] > current_pos){
-                            //                     // Turn left
-                            //                     std::cout << "(RIGHT-I) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
-                            //                     new_position = current_pos + 0.01*30.0f;
-                            //                 } else {
-                            //                     // Turn Right
-                            //                     std::cout << "(LEFT-I) Cur: " <<current_pos << " , Target: "<< target_joint_angles_IK[stage][i] << std::endl << std::endl;
-                            //                     new_position = current_pos - 0.01*30.0f;
-                            //                 }
-                            //             }
-                            //         }else {
-                            //             if(position_error > 0.0f){
-                                                                                    
-                            //                 // if((i == 0 && (abs(position_error) > 360 +target_joint_angles[stage][i] - base_feedback.actuators(i).position()))){
-                            //                     // new_position = current_pos - 0.01*30.0f;
-                            //                     // std::cout << "roll over left " <<stage << std::endl << std::endl;
-                            //                 // }else{
-                            //                 new_position = current_pos + 0.01*30.0f;
-                            //                 //     if(i == 0){
-                            //                 //         std::cout << "turning right" <<stage << std::endl << std::endl;
-                            //                 //     }
-                            
-                            //                 // }
-                            //             }else{
-                            //                 // if(i == 0 && (abs(position_error) > 360 + target_joint_angles_IK[stage][i] - base_feedback.actuators(i).position())){
-                            //                 // new_position = current_pos + 0.01*30.0f;
-                            //                 // std::cout << "roll over right: " <<stage << std::endl << std::endl;
-                            //                 // }else{
-                            //                 new_position = current_pos - 0.01*30.0f;
-                            //                     // if(i == 0){
-                            //                     //     std::cout << "turning left" <<stage << std::endl << std::endl;
-                            //                     // }
-                            //                 // }
-                            //             }
-                            //         }
-                            //     }
-                            // }else{
-                            //     //slows down because were in threshold area
-                            //     if(i != 0 && i != 1 && i != 2){
-                            //         //speed limit for smaller motors
-                            //         if(position_error > 0.0f){
-                            //         new_position = current_pos + 0.01*10.0f;
-                            //         }else{
-                            //         new_position = current_pos - 0.01*10.0f;
-                            //         }
-                            //     }else{
-                            //         //speed limits for bigger motor
-                            //         if(position_error > 0.0f){
-                            //         new_position = current_pos + 0.01*10.0f;
-                            //         }else{
-                            //         new_position = current_pos - 0.01*10.0f;    
-                            //         }
-                            //     }
-                            // }
-                            // base_command.mutable_actuators(i)->set_position(new_position);
-                        
+                          
 
                         // TODO: Confirm what we are doing (Position or velocity or both?)
                             base_command.mutable_actuators(i)->set_position(new_position_velocity[0]);
