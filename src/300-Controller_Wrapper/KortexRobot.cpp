@@ -319,7 +319,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     auto servoingMode = k_api::Base::ServoingModeInformation();
    
     std::vector<vector<float>> target_joint_angles_IK;
-    std::vector<vector<float>> target_jwaypoints;
+    std::vector<vector<float>> target_waypoints;
 
     target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
     target_joint_angles_IK = convert_points_to_angles(target_waypoints);

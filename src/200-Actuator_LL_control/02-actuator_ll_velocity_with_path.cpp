@@ -322,7 +322,6 @@ bool example_actuator_low_level_velocity_control(k_api::Base::BaseClient* base, 
         std::cout<< "post setting" << std::endl;
         std::cout<< "the limit angle is : "<< soft_angle_limits.kinematic_limits_list(i).twist_angular() << std::endl;
     }
->>>>>>> dev-refactor-low-level
 
     const float kTheta_x = -180.0;
     const float kTheta_y = 0.0;
