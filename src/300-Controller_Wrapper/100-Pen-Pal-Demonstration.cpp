@@ -13,7 +13,7 @@ int main(int argc, char **argv)
 
     pen_pal.mylogger.Log("Go home completed");
     pen_pal.mylogger.Log("Entering Writing Mode");
-	pen_pal.writing_mode();
+	  pen_pal.writing_mode();
     pen_pal.mylogger.Log("Writing Mode activated");
     pen_pal.mylogger.Log("Executing Read Csv using filename: " + coordinates_file, INFO);
   
