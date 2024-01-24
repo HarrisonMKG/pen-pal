@@ -27,7 +27,25 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 
 void KortexRobot::init_pids()
 {
-	pids[0] = Pid_Loop(0.1, 0.1, 0.1, 0.001);
+    actuator_count = base->GetActuatorCount().count();
+	vector<vector<float>> pid_inputs = {{0.1, 0.1, 0.1, 0.001},
+	{0.1, 0.1, 0.1, 0.001},
+	{0.1, 0.1, 0.1, 0.001},
+	{0.1, 0.1, 0.1, 0.001},
+	{0.1, 0.1, 0.1, 0.001},
+	{0.1, 0.1, 0.1, 0.001},
+	}; // This will turn into reading from a json later
+
+	for(int i=0; i<actuator_count-1; i++)
+	{
+		float k_p = pid_inputs[i][0];
+		float k_i = pid_inputs[i][1];
+		float k_d = pid_inputs[i][2];
+		float d_t = pid_inputs[i][3];
+
+		Pid_Loop pid(k_p,k_i,k_d,d_t);
+		pids.push_back(pid);
+	}
 }
 
 
