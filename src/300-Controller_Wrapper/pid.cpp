@@ -5,12 +5,8 @@
 // The dt term is from an example where it is called the "loop interval time" you multiply it to the error for the intergral
 // and you devide it by the difference of errors for the Derivative (the example value was 0.1). 
 
-Pid_Loop::Pid_Loop()
+Pid_Loop::Pid_Loop(float k_p, float k_i, float k_d, float dt)
 {
-
-}
-
-void Pid_Loop::config_params(float k_p, float k_i, float k_d, float dt) {
 	Pid_Loop::k_p = k_p;
 	Pid_Loop::k_i = k_i;
 	Pid_Loop::k_d = k_d;

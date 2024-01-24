@@ -32,8 +32,7 @@ public:
 	void set_direction(int direction);
 	float calculate_pid(float currentLocation, float setPoint, int actuator_index);
 
-	Pid_Loop();
-	void config_params(float k_p, float k_i, float k_d, float dt);
+	Pid_Loop(float k_p, float k_i, float k_d, float dt);
 	~Pid_Loop();
 
 protected:
