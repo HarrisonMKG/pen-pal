@@ -22,7 +22,14 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 	KortexRobot::username = username;
 	KortexRobot::password = password;
 	KortexRobot::connect();
+	init_pids();
 }
+
+void KortexRobot::init_pids()
+{
+	pids[0] = Pid_Loop(0.1, 0.1, 0.1, 0.001);
+}
+
 
 void KortexRobot::connect()
 {
@@ -62,10 +69,6 @@ void KortexRobot::connect()
     //resets all current errors
     device_config -> ClearAllSafetyStatus();
     std::cout << "Cleared all errors on Robot" << std::endl;
-
-
-	pid_acc_0.config_params(0.1, 0.1, 0.1, 0.001);
-
 }
 
 void KortexRobot::disconnect()
@@ -389,7 +392,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                             }
                             if (i == actuator_count - 1){
                                 // Current PID only outputs one float (using position now)
-                                float temp_adjustment = pid_acc_0.calculate_pid(current_pos, target_pos, 5);
+                                float temp_adjustment = pids[0].calculate_pid(current_pos, target_pos, 5);
                                 // std::cout << "Updating Last index: " <<temp_adjustment << std::endl;
                                 // Call old functions to get the vector format
                                 new_position_velocity = pid_small_motors(target_pos, current_pos,update_velocity,i);
