@@ -5,12 +5,11 @@
 // The dt term is from an example where it is called the "loop interval time" you multiply it to the error for the intergral
 // and you devide it by the difference of errors for the Derivative (the example value was 0.1). 
 
-Pid_Loop::Pid_Loop(float k_p, float k_i, float k_d, float dt)
+Pid_Loop::Pid_Loop(float k_p, float k_i, float k_d)
 {
 	Pid_Loop::k_p = k_p;
 	Pid_Loop::k_i = k_i;
 	Pid_Loop::k_d = k_d;
-	Pid_Loop::dt = dt;
 }
 
 float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuator_index)
@@ -32,14 +31,14 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 	float P = k_p * error;
 	// Integral term
 	float integral;
-	integral += error * dt;
+	integral += error * d_t;
 	if(abs(integral)<INTEGRAL_CLAMP)
 	{
 		integral = INTEGRAL_CLAMP;
 	}
 	float I = k_i * integral;
 	// Derivative term
-	derivative = (error - prevErr) / dt;
+	derivative = (error - prevErr) / d_t;
 	float D = k_d * derivative; 	
 	// Control signal after PID controller interference
 	float controlSignal = P + I + D;

@@ -15,7 +15,7 @@ private:
 	float k_p;
 	float k_i;
 	float k_d;
-	float dt;
+	const float d_t = 0.001;
 
 	// Not sure if these need to be private
 	float integral;
@@ -33,7 +33,7 @@ public:
 	float calculate_pid(float currentLocation, float setPoint, int actuator_index);
 	const float INTEGRAL_CLAMP = 0.01;
 
-	Pid_Loop(float k_p, float k_i, float k_d, float dt);
+	Pid_Loop(float k_p, float k_i, float k_d);
 	~Pid_Loop();
 
 protected:
