@@ -100,6 +100,8 @@ public:
 
     void output_arm_limits_and_mode();
 
+	const float SPEED_THRESHOLD = 35.0f;
+
 
     // PID LOOPS
     std::vector<float> pid_small_motors(float target_pos, float current_pos, float base_velocity,int motor);

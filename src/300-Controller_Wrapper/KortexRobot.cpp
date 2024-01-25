@@ -28,12 +28,12 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 void KortexRobot::init_pids()
 {
     actuator_count = base->GetActuatorCount().count();
-	vector<vector<float>> pid_inputs = {{0.1, 0.1, 0.1, 0.001},
-	{0.1, 0.1, 0.1, 0.001},
-	{0.1, 0.1, 0.1, 0.001},
-	{0.1, 0.1, 0.1, 0.001},
-	{0.1, 0.1, 0.1, 0.001},
-	{0.1, 0.1, 0.1, 0.001},
+	vector<vector<float>> pid_inputs = {{0.005, 0, 0, 100},
+	{2.0, 0.0, 0.05, 0.001},
+	{2.0, 0.0, 0.05, 0.001},
+	{2.0, 0.0, 0.05, 0.001},
+	{2.0, 0.0, 0.05, 0.001},
+	{2.0, 0.0, 0.05, 0.001},
 	}; // This will turn into reading from a json later
 
 	for(int i=0; i<actuator_count-1; i++)
@@ -41,7 +41,7 @@ void KortexRobot::init_pids()
 		float k_p = pid_inputs[i][0];
 		float k_i = pid_inputs[i][1];
 		float k_d = pid_inputs[i][2];
-		float d_t = pid_inputs[i][3];
+		float d_t = 0.001; 
 
 		Pid_Loop pid(k_p,k_i,k_d,d_t);
 		pids.push_back(pid);
@@ -246,11 +246,13 @@ void KortexRobot::set_actuator_control_mode(int mode_control)
         control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
     }
     actuator_config->SetControlMode(control_mode_message,1);
+	/*
     actuator_config->SetControlMode(control_mode_message,2);
     actuator_config->SetControlMode(control_mode_message,3);
     actuator_config->SetControlMode(control_mode_message,4);
     actuator_config->SetControlMode(control_mode_message,5);
     actuator_config->SetControlMode(control_mode_message,6);
+	*/
 }
 
 
@@ -353,7 +355,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     // Delay to allow for us to confirm angles being given to robot
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     set_actuator_control_mode(1);
-    float position_tolerance = 0.1f;
+    float position_tolerance = 0.0f;
     float closer_range_limit = 10.f;
     float larger_velocity = 20.0f;
     float smaller_velocity = 10.0f;
@@ -386,6 +388,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         // int atPosition = 0;
         int num_of_targets = target_waypoints.size();
         // Real-time loop
+		vector<float> motor_velocity(actuator_count,19.0f); 
         while(timer_count < (time_duration * 1000))
         {
             now = GetTickUs();
@@ -394,45 +397,42 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 base_feedback = base_cyclic->RefreshFeedback();
                 // atPosition = 0;
                 // PID LOOPS WOULD GO WITHIN HERE
-                for(int i = 0; i < actuator_count - 1; i++)
-                    {   
+                for(int j = 0; j < actuator_count - 1; j++)
+                    { 
+					int i = 0;
                     float current_pos = base_feedback.actuators(i).position();
-                    float target_pos = target_joint_angles_IK[stage][i];
+                    //float target_pos = target_joint_angles_IK[stage][i];
+                    float target_pos = 310; 
+
                     float position_error = target_pos - current_pos;
-                    float update_velocity;
-                    std::vector<float> new_position_velocity(2,0.0f);
+					float control_sig = pids[i].calculate_pid(current_pos, target_pos, 5);
+                    //std::vector<float> new_position_velocity(2,0.0f);
                     
                         if (std::abs(position_error) > position_tolerance) {
-                            if (std::abs(position_error) > closer_range_limit) {
-                                update_velocity = larger_velocity;
-                            } else {
-                                update_velocity = smaller_velocity;
-                            }
-                            if (i == actuator_count - 1){
-                                // Current PID only outputs one float (using position now)
-                                float temp_adjustment = pids[0].calculate_pid(current_pos, target_pos, 5);
-                                // std::cout << "Updating Last index: " <<temp_adjustment << std::endl;
-                                // Call old functions to get the vector format
-                                new_position_velocity = pid_small_motors(target_pos, current_pos,update_velocity,i);
-                                new_position_velocity[0] =  current_pos + temp_adjustment;
-                            }else if (i > 2) {
-                                new_position_velocity = pid_small_motors(target_pos, current_pos, update_velocity,i);
-                            } else if (i == 0) {
-                                new_position_velocity = pid_motor_0(target_pos, current_pos, update_velocity);
-                            } else {
-                                new_position_velocity = pid_motor_1_2(target_pos, current_pos, update_velocity);
-                            }
 
-                          
+							cout << "Current Pos: " << current_pos << "\t Traget Pos: " << target_pos << "\t Control Sig: " << control_sig<<  endl;
+							int direction = (abs(current_pos-target_pos)>abs(360-current_pos+target_pos)) ? 1:-1;
+							
+
+
+							if(abs(control_sig)<1)
+							{
+								motor_velocity[i] = control_sig*SPEED_THRESHOLD; 
+							}
+							else
+							{
+								cout << "FLAG" << endl;
+								motor_velocity[i] = SPEED_THRESHOLD*direction;
+							}
 
                         // TODO: Confirm what we are doing (Position or velocity or both?)
                             base_command.mutable_actuators(i)->set_position(current_pos);
-                            base_command.mutable_actuators(i)->set_velocity(new_position_velocity[1]);
+                            base_command.mutable_actuators(i)->set_velocity(motor_velocity[i]);
                         }else{
                             base_command.mutable_actuators(i)->set_position(current_pos);
                             base_command.mutable_actuators(i)->set_velocity(0);
 
-                            // std::cout << "Index: " << i << "    Reach destination" << std::endl;
+                            std::cout << "Index: " << i << "    Reach destination" << std::endl;
                             // std::cout << "Target: " << current_pos << "    Current: " << target_pos << std::endl;
                             reachPositions[i] = 1;
                             // atPosition++;
@@ -442,7 +442,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
 
 
-                if(ready_joints == actuator_count-1){
+                if(ready_joints == 1){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     reachPositions = {0,0,0,0,0};
@@ -549,11 +549,7 @@ std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vecto
         for(auto joint_angle : input_joint_angles.joint_angles())
         {
             jAngle = input_IkData.mutable_guess()->add_joint_angles();
-            if (joint_angle.value()+1 < 360 && joint_angle.value() -1 > 0 ){
-                jAngle->set_value(joint_angle.value());
-            }else{
-                 jAngle->set_value(0);
-            }
+			jAngle->set_value(joint_angle.value());
         }
         // Computing Inverse Kinematics (cartesian -> Angle convert) from arm's current pose and joint angles guess
         try
