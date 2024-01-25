@@ -28,7 +28,7 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 void KortexRobot::init_pids()
 {
     actuator_count = base->GetActuatorCount().count();
-	vector<vector<float>> pid_inputs = {{0.1, 0, 0, 100},
+	vector<vector<float>> pid_inputs = {{0.01, 0, 0, 100},
 	{2.0, 0.0, 0.05, 0.001},
 	{2.0, 0.0, 0.05, 0.001},
 	{2.0, 0.0, 0.05, 0.001},
@@ -389,20 +389,32 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         int num_of_targets = target_waypoints.size();
         // Real-time loop
 		vector<float> motor_velocity(actuator_count,19.0f); 
+		vector<int> motor_direction(actuator_count,0);
+
         while(timer_count < (time_duration * 1000))
         {
             now = GetTickUs();
             if(now - last > 1000 )
             {   
+
+				
                 base_feedback = base_cyclic->RefreshFeedback();
                 // atPosition = 0;
                 // PID LOOPS WOULD GO WITHIN HERE
                 for(int j = 0; j < actuator_count - 1; j++)
                     { 
 					int i = 0;
-                    float current_pos = base_feedback.actuators(i).position();
+
+					float current_pos = base_feedback.actuators(i).position();
+					float target_pos = 310; 
+					float theta = abs(current_pos-target_pos); 
+
+					if(motor_direction[i] == 0)
+					{
+						motor_direction[i] = (abs(theta)>abs(360-theta)) ? -1:1;
+					}
+
                     //float target_pos = target_joint_angles_IK[stage][i];
-                    float target_pos = 310; 
 
                     float position_error = target_pos - current_pos;
 					float control_sig = pids[i].calculate_pid(current_pos, target_pos, 5);
@@ -410,11 +422,10 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                     
                         if (std::abs(position_error) > position_tolerance) {
 
-							cout << "Current Pos: " << current_pos << "\t Traget Pos: " << target_pos << "\t Control Sig: " << control_sig<<  endl;
-							int direction = (abs(current_pos-target_pos)>abs(360-current_pos+target_pos)) ? 1:-1;
+							cout << "Current Pos: " << current_pos << "\t Traget Pos: " << target_pos << "\t Control Sig: " << control_sig<< "\t direction : "<< motor_direction[i] <<  endl;
 							
 
-							motor_velocity[i] += control_sig*SPEED_THRESHOLD; 
+							motor_velocity[i] = control_sig*SPEED_THRESHOLD*motor_direction[i]; 
                         // TODO: Confirm what we are doing (Position or velocity or both?)
                             base_command.mutable_actuators(i)->set_position(current_pos);
                             base_command.mutable_actuators(i)->set_velocity(motor_velocity[i]);
