@@ -16,9 +16,20 @@ Pid_Loop::Pid_Loop(float k_p, float k_i, float k_d, float dt)
 float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuator_index)
 {
 	//PID Controller calculations
-	int direction = (abs(currentLocation-setPoint)>abs(360-currentLocation+setPoint)) ? 1:-1;
-
-	float error = abs(setPoint - currentLocation)*direction;
+	int direction = 0; 
+	float error = 0.0f;
+	if(abs(currentLocation-setPoint)>abs(360-currentLocation+setPoint))
+	{
+		direction = -1;
+		error = 360-currentLocation+setPoint;
+	}
+	else
+	{
+		direction = 1;
+		error= setPoint - currentLocation; 
+	}
+	error = abs(error); 
+	cout << "error : " << error << endl;
 	// Proportional term
 	float P = k_p * error;
 	// Integral term

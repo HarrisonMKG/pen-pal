@@ -28,7 +28,7 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 void KortexRobot::init_pids()
 {
     actuator_count = base->GetActuatorCount().count();
-	vector<vector<float>> pid_inputs = {{0.005, 0, 0, 100},
+	vector<vector<float>> pid_inputs = {{0.1, 0, 0, 100},
 	{2.0, 0.0, 0.05, 0.001},
 	{2.0, 0.0, 0.05, 0.001},
 	{2.0, 0.0, 0.05, 0.001},
@@ -414,23 +414,13 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 							int direction = (abs(current_pos-target_pos)>abs(360-current_pos+target_pos)) ? 1:-1;
 							
 
-
-							if(abs(control_sig)<1)
-							{
-								motor_velocity[i] = control_sig*SPEED_THRESHOLD; 
-							}
-							else
-							{
-								cout << "FLAG" << endl;
-								motor_velocity[i] = SPEED_THRESHOLD*direction;
-							}
-
+							motor_velocity[i] += control_sig*SPEED_THRESHOLD; 
                         // TODO: Confirm what we are doing (Position or velocity or both?)
                             base_command.mutable_actuators(i)->set_position(current_pos);
                             base_command.mutable_actuators(i)->set_velocity(motor_velocity[i]);
                         }else{
                             base_command.mutable_actuators(i)->set_position(current_pos);
-                            base_command.mutable_actuators(i)->set_velocity(0);
+                            //base_command.mutable_actuators(i)->set_velocity(0);
 
                             std::cout << "Index: " << i << "    Reach destination" << std::endl;
                             // std::cout << "Target: " << current_pos << "    Current: " << target_pos << std::endl;
@@ -485,7 +475,8 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     base->SetServoingMode(servoingMode);
 
     // Wait for a bit
-    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
+	//no ty
+    //std::this_thread::sleep_for(std::chrono::milliseconds(2000));
 
     return return_status;
 }
