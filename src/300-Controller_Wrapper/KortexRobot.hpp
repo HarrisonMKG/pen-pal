@@ -8,6 +8,7 @@
 #include <vector>
 #include <cmath>
 #include <fstream>
+#include <numeric>
 #include <sstream>
 
 #include <KDetailedException.h>
@@ -27,6 +28,7 @@
 #include <google/protobuf/util/json_util.h>
 
 #include "utilities.h"
+#include "pid.cpp"
 
 #if defined(_MSC_VER)
 #include <Windows.h>
@@ -76,8 +78,6 @@ private:
 	void printException(k_api::KDetailedException& ex);
 
 	int64_t GetTickUs();
-	// std::vector<vector<float>>
-
 
 public:
     KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password);
@@ -100,15 +100,19 @@ public:
 
     void output_arm_limits_and_mode();
 
+	const float SPEED_THRESHOLD = 35.0f;
+
 
     // PID LOOPS
-    std::vector<float> pid_small_motors(float target_pos, float current_pos, float base_velocity);
+    std::vector<float> pid_small_motors(float target_pos, float current_pos, float base_velocity,int motor);
     std::vector<float> pid_motor_0(float target_pos, float current_pos, float base_velocity);
     std::vector<float> pid_motor_1_2(float target_pos, float current_pos, float base_velocity);
-
+	
+	void init_pids();
     int actuator_count;
+    vector<Pid_Loop> pids;
 
-    
+
 protected:
 	//data
     
