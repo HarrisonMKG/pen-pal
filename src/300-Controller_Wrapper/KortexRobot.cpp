@@ -85,6 +85,7 @@ void KortexRobot::connect()
 
     //resets all current errors
     device_config -> ClearAllSafetyStatus();
+	base->ClearFaults();
     std::cout << "Cleared all errors on Robot" << std::endl;
 }
 
