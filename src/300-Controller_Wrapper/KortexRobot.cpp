@@ -83,9 +83,14 @@ void KortexRobot::connect()
     device_config = new k_api::DeviceConfig::DeviceConfigClient(router);
     actuator_count = base->GetActuatorCount().count();
 
+    starting_origin = {0.4,0.5,0.3}; //Starting X, Y, Z coordinates of where robot will perform trajectories
+    bais_vector = {0.0,0.0,0.0}; //Starting X, Y, Z coordinates of where robot will perform trajectories
+    
     //resets all current errors
     device_config -> ClearAllSafetyStatus();
     std::cout << "Cleared all errors on Robot" << std::endl;
+
+
 }
 
 void KortexRobot::disconnect()
@@ -273,7 +278,7 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 		while (std::getline(ss, cell, ',')) {
 			try {
 				float value = std::stof(cell);
-				row.push_back(value);
+				row.push_back(value/1000);
 			} catch (const std::invalid_argument& e) {
 				std::cerr << "Invalid number format in line: " << line << std::endl;
 				// Handle the error or skip the invalid value
@@ -292,12 +297,24 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
                                                                     float kTheta_y, float kTheta_z) {
     bool verbose = true; 
     // Assuming the format of the csv_file will be in (time, x, y, z) for each line
+    // TODO: Likely add bias in here. Give it the intended starting point, calculate the bias by the difference in the first_waypoint 
+    // and then shift all csv_points by the same amount.
+    std::vector<float> temp_vector = csv_points[0];
+    int idx = 0;
     for (auto& point : csv_points)
 	{
 		if(point.size()>3){
 			point.erase(point.begin());// remove seconds value for IR sensor
 		}
-		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
+        if (idx == 0){
+            calculate_bias(point);
+        }
+        point[0] -= bais_vector[0];
+        point[1] -= bais_vector[1];
+        point[2] -= bais_vector[2];
+
+		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z}); //TODO: Likely remove the blending radius as we are not using it anymore
+        idx ++;
 	}
     
     if (verbose) {
@@ -338,7 +355,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
         std::cout << serialized_data << std::endl << std::endl;
     */
-		};
+    };
 
     k_api::BaseCyclic::Feedback base_feedback;
     k_api::BaseCyclic::Command  base_command;
@@ -356,8 +373,6 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     set_actuator_control_mode(1);
     float position_tolerance = 0.0f;
     float closer_range_limit = 10.f;
-    float larger_velocity = 20.0f;
-    float smaller_velocity = 10.0f;
     bool return_status = true;
 
     int timer_count = 0;
@@ -403,9 +418,8 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 for(int j = 0; j < actuator_count - 1; j++)
                     { 
 					int i = 0;
-
 					float current_pos = base_feedback.actuators(i).position();
-					float target_pos = 310; 
+					float target_pos = target_joint_angles_IK[stage][i];
 					float theta = abs(current_pos-target_pos); 
 
 					if(motor_direction[i] == 0)
@@ -413,19 +427,14 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 						motor_direction[i] = (abs(theta)>abs(360-theta)) ? -1:1;
 					}
 
-                    //float target_pos = target_joint_angles_IK[stage][i];
-
                     float position_error = target_pos - current_pos;
-					float control_sig = pids[i].calculate_pid(current_pos, target_pos, 5);
-                    //std::vector<float> new_position_velocity(2,0.0f);
+					float control_sig = pids[i].calculate_pid(current_pos, target_pos, 5); //Why are we passing index 5?
                     
                         if (std::abs(position_error) > position_tolerance) {
 
 							cout << "Current Pos: " << current_pos << "\t Traget Pos: " << target_pos << "\t Control Sig: " << control_sig<< "\t direction : "<< motor_direction[i] <<  endl;
-							
-
 							motor_velocity[i] = control_sig*SPEED_THRESHOLD*motor_direction[i]; 
-                        // TODO: Confirm what we are doing (Position or velocity or both?)
+
                             base_command.mutable_actuators(i)->set_position(current_pos);
                             base_command.mutable_actuators(i)->set_velocity(motor_velocity[i]);
                         }else{
@@ -433,10 +442,10 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                             //base_command.mutable_actuators(i)->set_velocity(0);
 
                             std::cout << "Index: " << i << "    Reach destination" << std::endl;
-                            // std::cout << "Target: " << current_pos << "    Current: " << target_pos << std::endl;
                             reachPositions[i] = 1;
-                            // atPosition++;
                         } 
+
+
                     }
                 // PID LOOPS ABOVE
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
@@ -508,6 +517,12 @@ void KortexRobot::printException(k_api::KDetailedException& ex)
     std::cout << "Error sub-code string equivalent: " << k_api::SubErrorCodes_Name(k_api::SubErrorCodes(error_info.error_sub_code())) << std::endl;
 }
 
+void KortexRobot::calculate_bias(std::vector<float> first_waypoint) {
+    bais_vector[0] = first_waypoint[0] - starting_origin[0];
+    bais_vector[1] = first_waypoint[1] - starting_origin[1];
+    bais_vector[2] = first_waypoint[2] - starting_origin[2];
+}
+
 std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vector<std::vector<float>> target_points)
 {   
     // Function take an array of target points in format (x,y,z,theta_x,theta_y,theta_z)
@@ -516,6 +531,7 @@ std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vecto
     
     bool verbose = false;
     std::vector<std::vector<float>> final_joint_angles;
+    std::vector<float> current_guesses(6, 0.0f);
     k_api::Base::JointAngles input_joint_angles;
 
     try
@@ -527,6 +543,13 @@ std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vecto
         std::cout << "Unable to get current robot pose" << std::endl;
         printException(ex);
         return final_joint_angles;
+    }
+
+    // Vector with initial values for the first guess. Afterward update with the other the next points joint angles
+    int initial_indx = 0;
+    for(auto joint_angle : input_joint_angles.joint_angles())
+    {
+        current_guesses[initial_indx] = joint_angle.value();
     }
 
     for (std::vector<float> current_target : target_points) 
@@ -547,10 +570,10 @@ std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vecto
         input_IkData.mutable_cartesian_pose()->set_theta_z(current_target[6]);
 
         // Fill the IKData Object with the guessed joint angles
-        for(auto joint_angle : input_joint_angles.joint_angles())
+        for(auto joint_angle : current_guesses)
         {
             jAngle = input_IkData.mutable_guess()->add_joint_angles();
-			jAngle->set_value(joint_angle.value());
+			jAngle->set_value(joint_angle);
         }
         // Computing Inverse Kinematics (cartesian -> Angle convert) from arm's current pose and joint angles guess
         try
@@ -565,26 +588,29 @@ std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vecto
         }
 
         int joint_identifier = 0;
-        std::vector<float> temp_joints(6, 0.0f);
-
+        cout << "Computed IK: ";
         for (auto joint_angle : computed_joint_angles.joint_angles()) 
-        {
-            temp_joints[joint_identifier] = joint_angle.value();
+        {   
+            current_guesses[joint_identifier] = joint_angle.value();
+            current_guesses[joint_identifier] = fmod(current_guesses[joint_identifier], 360.0);
+            if (current_guesses[joint_identifier] < 0.0) {
+                current_guesses[joint_identifier] = current_guesses[joint_identifier] + 360;
+            }
+            cout << joint_identifier << ": "<< current_guesses[joint_identifier] << ", ";
             joint_identifier++;
         }
-        final_joint_angles.push_back(temp_joints);
+        cout << endl;
+        final_joint_angles.push_back(current_guesses);
     }
     // Ensure all the angles provided are mod360.0 and positive
-    int num_points = final_joint_angles.size();
-    for (int section = 0; section != num_points ;section++)
-    {
-        for (int rotator = 0; rotator != 6; rotator++){
-            final_joint_angles[section][rotator] = fmod(final_joint_angles[section][rotator], 360.0);
-            if (final_joint_angles[section][rotator] < 0.0) {
-                final_joint_angles[section][rotator] = final_joint_angles[section][rotator] + 360;
-            }
-        }
-    }
+    // int num_points = final_joint_angles.size();
+    // for (int section = 0; section != num_points ;section++)
+    // {
+    //     for (int rotator = 0; rotator != 6; rotator++){
+    //         final_joint_angles[section][rotator] = fmod(final_joint_angles[section][rotator], 360.0);
+            
+    //     }
+    // }
     if (verbose){
         for (int i = 0; i < final_joint_angles.size(); i++)
         {
