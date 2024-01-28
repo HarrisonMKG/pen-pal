@@ -114,6 +114,9 @@ public:
     std::vector<float>starting_origin;
     vector<Pid_Loop> pids;
 
+	const vector<float> surface_cords = {0.455,0,0.115};
+	void find_paper();
+
 
 protected:
 	//data

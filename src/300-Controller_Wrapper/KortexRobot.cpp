@@ -201,6 +201,16 @@ void KortexRobot::go_home()
     }
 }
 
+void KortexRobot::find_paper()
+{
+	//Should have an if statement for config mode where you can change this hardcoded value in real time using the sequence of:
+	//1) Pause the system
+	//2) Wait till user manually moves arm to writing position
+	//3) User presses "enter" in cli to confirm they found the paper
+	//4) Continue
+	KortexRobot::move_cartesian({surface_cords});
+}
+
 std::function<void(k_api::Base::ActionNotification)> 
 KortexRobot::check_for_end_or_abort(bool& finished)
 {
