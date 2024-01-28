@@ -96,7 +96,7 @@ public:
     std::vector<std::vector<float>> convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, 
                                                                         float kTheta_x, float kTheta_y, 
                                                                         float kTheta_z);
-    // get_lambda_feedback_callback();
+    void calculate_bias(std::vector<float> first_waypoint);
 
     void output_arm_limits_and_mode();
 
@@ -110,6 +110,8 @@ public:
 	
 	void init_pids();
     int actuator_count;
+    std::vector<float>bais_vector; //Vector of 3 elements to use to shift the x, y, z target points 
+    std::vector<float>starting_origin;
     vector<Pid_Loop> pids;
 
 
