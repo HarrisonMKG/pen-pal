@@ -26,7 +26,6 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 	}
 	*/
 
-	cout << "error : " << error << endl;
 	// Proportional term
 	float P = k_p * error;
 	// Integral term
