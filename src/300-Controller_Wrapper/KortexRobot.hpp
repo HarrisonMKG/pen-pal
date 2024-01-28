@@ -41,7 +41,7 @@
 
 #define PORT 10000
 #define PORT_REAL_TIME 10001
-#define DURATION 15             // Network timeout (seconds)
+#define DURATION 100             // Network timeout (seconds)
 
 namespace k_api = Kinova::Api;
 

@@ -87,10 +87,10 @@ void KortexRobot::connect()
 
     //resets all current errors
     device_config -> ClearAllSafetyStatus();
-	// base->ClearFaults();
+	base->ClearFaults();
     std::cout << "Cleared all errors on Robot" << std::endl;
 
-    altered_origin = {0.4, 0.05, 0.2};
+    altered_origin = {0.45, 0.2, 0.2};
     bais_vector = {0.0, 0.0, 0.0};  
 }
 
@@ -127,8 +127,8 @@ KortexRobot::~KortexRobot()
 
 void KortexRobot::writing_mode()
 {
-    float kTheta_x = 180.0;
-    float kTheta_y = 0.0;
+    float kTheta_x = 0.0;
+    float kTheta_y = -180.0;
     float kTheta_z = 90.0;
 
 	auto current_pose = base->GetMeasuredCartesianPose();
@@ -325,6 +325,7 @@ void KortexRobot::calculate_bias(std::vector<float> first_waypoint) {
     bais_vector[0] = first_waypoint[0] - altered_origin[0];
     bais_vector[1] = first_waypoint[1] - altered_origin[1];
     bais_vector[2] = first_waypoint[2] - altered_origin[2];
+    cout << "BIAS: X: " << bais_vector[0] << "\tY: " <<bais_vector[1] << "\tZ: " << bais_vector[2] << endl;
 }
 
 bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition, float kTheta_x, 
@@ -367,6 +368,8 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     // Delay to allow for us to confirm angles being given to robot
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     set_actuator_control_mode(1, 1); //Set actuators to velocity mode dont use index values
+    set_actuator_control_mode(1, 4); //Set actuators to velocity mode dont use index values
+    set_actuator_control_mode(1, 5); //Set actuators to velocity mode dont use index values
 
     float position_tolerance = 2.0f;
     float closer_range_limit = 10.f;
@@ -376,8 +379,6 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     int64_t now = 0;
     int64_t last = 0;
     int timeout = 0;
-
-    // return true;
 
     //mylogger.Log("Initializing the arm for velocity low-level control example", INFO);
     try
@@ -395,10 +396,10 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 
         int stage = 0;
         std::vector<int> reachPositions(5, 0);
-        // int atPosition = 0;
         int num_of_targets = target_waypoints.size();
         // Real-time loop
 		vector<float> motor_velocity(actuator_count,19.0f); 
+		vector<float> velocity_limits = {30.0, 10.0, 10.0, 10.0, 25.0, 20.0}; 
 		vector<int> motor_direction(actuator_count,0);
 
         while(timer_count < (time_duration * 1000))
@@ -407,55 +408,63 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
             if(now - last > 1000)
             {   
                 base_feedback = base_cyclic->RefreshFeedback();
-                // atPosition = 0;
                 // PID LOOPS WOULD GO WITHIN HERE
-                for(int j = 0; j < actuator_count - 1; j++)
+                for(int i = 0; i < actuator_count - 1; i++)
                     { 
-					int i = 0;
+                        if (i == 1 || i == 2 || i == 5){
+                            continue;
+                        } 
+					// int i = 0;
 
 					float current_pos = base_feedback.actuators(i).position();
-					// float target_pos = 310; 
                     float target_pos = target_joint_angles_IK[stage][i];
 					float theta = abs(current_pos-target_pos); 
 
-					if(motor_direction[i] == 0)
-					{
-						motor_direction[i] = (abs(theta)>abs(360-theta)) ? -1:1;
-					}
+					// if(motor_direction[i] == 0)
+					// {
+					// 	motor_direction[i] = (abs(theta)>abs(360-theta)) ? -1:1;
+					// }
 
                     float position_error = target_pos - current_pos;
 					float control_sig = pids[i].calculate_pid(current_pos, target_pos, 5);
-                    
+                    cout << "Stage: " << stage+1 << "\t Acc: " << i << "\t Current Pos: " << current_pos << "\t Target Pos: " << target_pos;
                         if (std::abs(position_error) > position_tolerance) {
-							motor_velocity[i] = control_sig*SPEED_THRESHOLD*motor_direction[i]; 
+                            reachPositions[i] = 0;
+							// motor_velocity[i] = control_sig*SPEED_THRESHOLD*motor_direction[i]; 
+							motor_velocity[i] = control_sig*SPEED_THRESHOLD; 
+                             
+                            
 
-							cout << "Acc: " << i << "\t Current Pos: " << current_pos << "\t Target Pos: " << target_pos << "\t Control Sig: " << std::fixed << std::setprecision(5) << control_sig<< "\t direction : "<< motor_direction[i];
-                            cout << "\t Velocity: " << motor_velocity[i] << endl;
-							
+							cout << "\t Control Sig: " << std::fixed << std::setprecision(5) << control_sig;
+                            cout << "\t Velocity: " << motor_velocity[i];
+							if (abs(motor_velocity[i]) > velocity_limits[i]) {
+                                
+                                motor_velocity[i] = (motor_velocity[i] / abs(motor_velocity[i])) * velocity_limits[i]; 
+                                cout << "\tCAPPED: " << motor_velocity[i];
+                            }
+                            cout << endl;
 
                         // TODO: Confirm what we are doing (Position or velocity or both?)
                             base_command.mutable_actuators(i)->set_position(current_pos);
                             base_command.mutable_actuators(i)->set_velocity(motor_velocity[i]);
                         }else{
-                            base_command.mutable_actuators(i)->set_position(current_pos);
-                            //base_command.mutable_actuators(i)->set_velocity(0);
+                            base_command.mutable_actuators(i)->set_position(target_pos);
+                            // base_command.mutable_actuators(i)->set_velocity(0);
 
-                            std::cout << "Index: " << i << "    Reach destination" << std::endl;
+                            std::cout << "\t Reach destination" << std::endl;
                             // std::cout << "Target: " << current_pos << "    Current: " << target_pos << std::endl;
                             reachPositions[i] = 1;
-                            // atPosition++;
                         } 
                     }
                 // PID LOOPS ABOVE
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
 
 
-                if(ready_joints == 1){
+                if(ready_joints == 3){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     reachPositions = {0,0,0,0,0};
-                    std::this_thread::sleep_for(std::chrono::milliseconds(2000));
-
+                    // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
                 }
                 if(stage == num_of_targets){
                     break;

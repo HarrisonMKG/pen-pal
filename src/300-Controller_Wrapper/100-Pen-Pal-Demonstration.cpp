@@ -9,7 +9,7 @@ int main(int argc, char **argv)
     // Logger logger(parsed_args.output);
 
     KortexRobot pen_pal(parsed_args.ip_address,parsed_args.username,parsed_args.password);
-    pen_pal.go_home();
+    // pen_pal.go_home();
 
     // pen_pal.mylogger.Log("Go home completed");
     // pen_pal.mylogger.Log("Entering Writing Mode");

@@ -17,6 +17,17 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 	//PID Controller calculations
 	int direction = 1; 
 	float error = setPoint - currentLocation; 
+	// float other_error = currentLocation - setPoint; 
+	// cout << "ERROR: " << error << endl;
+	if (abs(error) >= 180) {
+		if (error > 0){
+			error = error - 360;
+		} else {
+			error = error + 360;
+		}
+	}
+	// cout << "UPDATED ERROR: " << error << endl;
+
 	/*
 	float theta = currentLocation-setPoint; 
 	
