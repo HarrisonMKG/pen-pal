@@ -596,22 +596,26 @@ std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vecto
         for (auto joint_angle : computed_joint_angles.joint_angles()) 
         {
             temp_joints[joint_identifier] = joint_angle.value();
+            temp_joints[joint_identifier] = fmod(temp_joints[joint_identifier], 360.0);
+            if (temp_joints[joint_identifier] < 0.0) {
+                temp_joints[joint_identifier] = temp_joints[joint_identifier] + 360;
+            }
             joint_identifier++;
         }
         current_guess = temp_joints;
         final_joint_angles.push_back(temp_joints);
     }
     // Ensure all the angles provided are mod360.0 and positive
-    int num_points = final_joint_angles.size();
-    for (int section = 0; section != num_points ;section++)
-    {
-        for (int rotator = 0; rotator != 6; rotator++){
-            final_joint_angles[section][rotator] = fmod(final_joint_angles[section][rotator], 360.0);
-            if (final_joint_angles[section][rotator] < 0.0) {
-                final_joint_angles[section][rotator] = final_joint_angles[section][rotator] + 360;
-            }
-        }
-    }
+    // int num_points = final_joint_angles.size();
+    // for (int section = 0; section != num_points ;section++)
+    // {
+    //     for (int rotator = 0; rotator != 6; rotator++){
+    //         final_joint_angles[section][rotator] = fmod(final_joint_angles[section][rotator], 360.0);
+    //         if (final_joint_angles[section][rotator] < 0.0) {
+    //             final_joint_angles[section][rotator] = final_joint_angles[section][rotator] + 360;
+    //         }
+    //     }
+    // }
     if (verbose){
         for (int i = 0; i < final_joint_angles.size(); i++)
         {
