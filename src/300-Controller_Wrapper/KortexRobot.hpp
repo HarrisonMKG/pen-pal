@@ -10,6 +10,8 @@
 #include <fstream>
 #include <numeric>
 #include <sstream>
+#include <iomanip>
+
 
 #include <KDetailedException.h>
 
@@ -39,7 +41,7 @@
 
 #define PORT 10000
 #define PORT_REAL_TIME 10001
-#define DURATION 15             // Network timeout (seconds)
+#define DURATION 100             // Network timeout (seconds)
 
 namespace k_api = Kinova::Api;
 
@@ -85,10 +87,10 @@ public:
 	void connect();
 	void disconnect();
     ~KortexRobot();
-    void set_actuator_control_mode(int mode_control);
+    void set_actuator_control_mode(int mode_control, int actuator_indx = -1);
 	void writing_mode();
 	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition,
-					float kTheta_x = 0.0f, float kTheta_y = -180.0f, float kTheta_z = 90.0f);
+					float kTheta_x = 180.0f, float kTheta_y = 0.0f, float kTheta_z = 90.0f);
 
 	std::vector<std::vector<float>> convert_points_to_angles(std::vector<vector<float>> target_points);
 	
@@ -96,19 +98,20 @@ public:
     std::vector<std::vector<float>> convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, 
                                                                         float kTheta_x, float kTheta_y, 
                                                                         float kTheta_z);
+
+    void calculate_bias(std::vector<float> first_waypoint);
+
     // get_lambda_feedback_callback();
 
     void output_arm_limits_and_mode();
 
-	const float SPEED_THRESHOLD = 35.0f;
+	const float SPEED_THRESHOLD = 15.0f;
 
-
-    // PID LOOPS
-    std::vector<float> pid_small_motors(float target_pos, float current_pos, float base_velocity,int motor);
-    std::vector<float> pid_motor_0(float target_pos, float current_pos, float base_velocity);
-    std::vector<float> pid_motor_1_2(float target_pos, float current_pos, float base_velocity);
-	
 	void init_pids();
+
+    vector<float> altered_origin;
+    vector<float> bais_vector;
+
     int actuator_count;
     vector<Pid_Loop> pids;
 
