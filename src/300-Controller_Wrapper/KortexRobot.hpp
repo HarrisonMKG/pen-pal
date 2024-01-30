@@ -31,6 +31,7 @@
 
 #include "utilities.h"
 #include "pid.cpp"
+#include "logger.cpp"
 
 #if defined(_MSC_VER)
 #include <Windows.h>
@@ -82,41 +83,35 @@ private:
 	int64_t GetTickUs();
 
 public:
-    KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password);
+    KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password, const std::string& output_folder="output_dir");
+    ~KortexRobot();
+
 	void go_home();
 	void connect();
 	void disconnect();
-    ~KortexRobot();
     void set_actuator_control_mode(int mode_control, int actuator_indx = -1);
 	void writing_mode();
 	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition,
 					float kTheta_x = 180.0f, float kTheta_y = 0.0f, float kTheta_z = 90.0f);
 
 	std::vector<std::vector<float>> convert_points_to_angles(std::vector<vector<float>> target_points);
-	
     std::vector<std::vector<float>> read_csv(const std::string &filename);
     std::vector<std::vector<float>> convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, 
                                                                         float kTheta_x, float kTheta_y, 
                                                                         float kTheta_z);
-
     void calculate_bias(std::vector<float> first_waypoint);
-
-    // get_lambda_feedback_callback();
-
     void output_arm_limits_and_mode();
+    void init_pids();
+	void find_paper();
 
 	const float SPEED_THRESHOLD = 15.0f;
-
-	void init_pids();
-
-    vector<float> altered_origin;
-    vector<float> bais_vector;
+	const vector<float> surface_cords = {0.455,0,0.115};
 
     int actuator_count;
     vector<Pid_Loop> pids;
-
-	const vector<float> surface_cords = {0.455,0,0.115};
-	void find_paper();
+    Logger mylog;
+    vector<float> altered_origin;
+    vector<float> bais_vector;
 
 
 protected:

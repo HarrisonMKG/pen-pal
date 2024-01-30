@@ -13,14 +13,20 @@
 *
 */
 #include "KortexRobot.hpp"
+enum LogLevel { INFO = 0, WARN = 1, ERR = 2};
 
 namespace k_api = Kinova::Api;
 
-KortexRobot::KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password)
+
+KortexRobot::KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password, const std::string& output_folder)
 {
 	KortexRobot::ip_address = ip_address;
 	KortexRobot::username = username;
 	KortexRobot::password = password;
+    bool logger_result = KortexRobot:: mylog.create_folder_and_files(output_folder);
+    if (!logger_result){
+        std::cout << "Error when setting up the Logger class, Example is likely to fail or no log messages will be saved" << std::endl;
+    }
 	KortexRobot::connect();
 	init_pids();
 }
@@ -69,12 +75,14 @@ void KortexRobot::connect()
     create_session_info.set_connection_inactivity_timeout(2000); // (milliseconds)
 
     // Session manager service wrapper
-    std::cout << "Creating sessions for communication" << std::endl;
+    mylog.Log("Creating sessions for communication", INFO);
+    // std::cout << "Creating sessions for communication" << std::endl;
     session_manager = new k_api::SessionManager(router);
     session_manager->CreateSession(create_session_info);
     session_manager_real_time = new k_api::SessionManager(router_real_time);
     session_manager_real_time->CreateSession(create_session_info);
-    std::cout << "Sessions created" << std::endl;
+    mylog.Log("Sessions created", INFO);
+    // std::cout << "Sessions created" << std::endl;
 
     // Create services
     base = new k_api::Base::BaseClient(router);
