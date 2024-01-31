@@ -28,12 +28,12 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 void KortexRobot::init_pids()
 {
     actuator_count = base->GetActuatorCount().count();
-	vector<vector<float>> pid_inputs = {{0.05, 0.00002, 0.0},//tuned
-	{0.001, 0.0, 0.0}, //BAD
-	{0.05, 0.0, 0.0}, //tuned
-	{0.2, 0.0, 0.0}, //tuned
-	{0.2, 0.0, 0.0}, //tuned
-	{1, 0.0, 0.0} // tuned
+	vector<vector<float>> pid_inputs = {{0.05, 0.00002, 0.0005},//tuned
+    {0.25, 0.25, 0.025}, //tuned
+    {0.085, 0.075, 0.015}, //tuned
+    {0.2, 0.0, 0.0}, //tuned
+    {0.15, 0.05, 0.005}, //tuned
+    {1, 0.0, 0.0} // tuned
 	}; // This will turn into reading from a json later
     // Probably should include angle limits, max & min control sig limits
     // possibly position thresholds for all angles?
@@ -90,7 +90,7 @@ void KortexRobot::connect()
 	base->ClearFaults();
     std::cout << "Cleared all errors on Robot" << std::endl;
 
-    altered_origin = {0.45, 0.2, 0.2};
+    altered_origin = {0.25, 0.0, 0.3};
     bais_vector = {0.0, 0.0, 0.0};  
 }
 
@@ -296,6 +296,8 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, float kTheta_x,
                                                                     float kTheta_y, float kTheta_z) {
     bool verbose = true; 
+    int gd = DETECT, gm;
+    initgraph(&gd, &gm, NULL);
     // Assuming the format of the csv_file will be in (time, x, y, z) for each line
     vector<float> temp_first_points(3, 0.0);
     int indx = 0;
@@ -312,10 +314,14 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         point[0] -= bais_vector[0];
         point[1] -= bais_vector[1];
         point[2] -= bais_vector[2];
+        line(point[0],point[1],temp_first_points[0],temp_first_points[1]);
+        temp_first_points = {point[0], point[1], point[2]};
 
 		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
 	}
-    
+    //for graphing the route
+    getch();
+    closegraph();
     if (verbose) {
         cout << "Modified Vector" << endl;
         for(auto point : csv_points)
@@ -377,9 +383,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 
     // Delay to allow for us to confirm angles being given to robot
     std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    set_actuator_control_mode(1, 1); //Set actuators to velocity mode dont use index values
-    set_actuator_control_mode(1, 4); //Set actuators to velocity mode dont use index values
-    set_actuator_control_mode(1, 5); //Set actuators to velocity mode dont use index values
+    set_actuator_control_mode(1); //Set actuators to velocity mode dont use index values
 
     float position_tolerance = 2.0f;
     float closer_range_limit = 10.f;
@@ -421,7 +425,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 // PID LOOPS WOULD GO WITHIN HERE
                 for(int i = 0; i < actuator_count - 1; i++)
                     { 
-                        if (i == 1 || i == 2 || i == 5){
+                        if (i == 5){
                             continue;
                         } 
 					// int i = 0;

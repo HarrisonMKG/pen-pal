@@ -11,6 +11,7 @@
 #include <numeric>
 #include <sstream>
 #include <iomanip>
+#include <graphics.h>
 
 
 #include <KDetailedException.h>
