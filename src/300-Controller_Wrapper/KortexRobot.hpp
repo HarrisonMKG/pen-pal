@@ -11,7 +11,8 @@
 #include <numeric>
 #include <sstream>
 #include <iomanip>
-#include <graphics.h>
+#include "gnuplot-iostream.h"
+//#include <graphics.h>
 
 
 #include <KDetailedException.h>
@@ -118,7 +119,11 @@ public:
 
 	const vector<float> surface_cords = {0.455,0,0.115};
 	void find_paper();
+	void plot(vector<vector<float>>data);
+	int start_plot();
 
+  std::ofstream plot_data;
+	FILE *gnu_plot;
 
 protected:
 	//data

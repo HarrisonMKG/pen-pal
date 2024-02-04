@@ -25,10 +25,42 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 	init_pids();
 }
 
+void KortexRobot::plot(vector<vector<float>>data)
+{
+	start_plot();
+  for(auto set_of_points : data)
+  {
+    for(auto point : set_of_points)
+    {
+      KortexRobot::plot_data<< point << endl;
+        fprintf(gnu_plot, "plot 'realtime_data.txt' with lines\n");
+        fflush(gnu_plot);
+    }
+  }
+  
+}
+
+int KortexRobot::start_plot()
+{
+  FILE *gnuplotPipe = popen("gnuplot -persist", "w");
+  KortexRobot::gnu_plot = gnuplotPipe;
+  if (!gnu_plot) {
+    std::cerr << "Error: Gnuplot not found." << std::endl;
+    return 1;
+  }
+
+  // Open a file for writing
+  KortexRobot::plot_data("realtime_data.txt");
+  if (!plot_data.is_open()) {
+    std::cerr << "Error: Unable to open data file." << std::endl;
+    return 1;
+  }
+}
+
 void KortexRobot::init_pids()
 {
     actuator_count = base->GetActuatorCount().count();
-	vector<vector<float>> pid_inputs = {{0.05, 0.00002, 0.0005},//tuned
+	  vector<vector<float>> pid_inputs = {{0.05, 0.00002, 0.0005},//tuned
     {0.25, 0.25, 0.025}, //tuned
     {0.085, 0.075, 0.015}, //tuned
     {0.2, 0.0, 0.0}, //tuned
@@ -296,8 +328,6 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, float kTheta_x,
                                                                     float kTheta_y, float kTheta_z) {
     bool verbose = true; 
-    int gd = DETECT, gm;
-    initgraph(&gd, &gm, NULL);
     // Assuming the format of the csv_file will be in (time, x, y, z) for each line
     vector<float> temp_first_points(3, 0.0);
     int indx = 0;
@@ -314,14 +344,10 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         point[0] -= bais_vector[0];
         point[1] -= bais_vector[1];
         point[2] -= bais_vector[2];
-        line(point[0],point[1],temp_first_points[0],temp_first_points[1]);
         temp_first_points = {point[0], point[1], point[2]};
 
 		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
 	}
-    //for graphing the route
-    getch();
-    closegraph();
     if (verbose) {
         cout << "Modified Vector" << endl;
         for(auto point : csv_points)
