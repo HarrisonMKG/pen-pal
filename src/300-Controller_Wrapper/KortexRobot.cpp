@@ -27,15 +27,12 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 
 void KortexRobot::plot(vector<vector<float>>data)
 {
-	start_plot();
-  for(auto set_of_points : data)
+	//start_plot();
+  for(auto points: data)
   {
-    for(auto point : set_of_points)
-    {
-      KortexRobot::plot_data<< point << endl;
-        fprintf(gnu_plot, "plot 'realtime_data.txt' with lines\n");
-        fflush(gnu_plot);
-    }
+    KortexRobot::plot_data << points[0] << " " << points[1] << endl;
+    fprintf(gnu_plot, "plot 'realtime_data.txt' with lines\n");
+    fflush(gnu_plot);
   }
   
 }
@@ -50,7 +47,7 @@ int KortexRobot::start_plot()
   }
 
   // Open a file for writing
-  KortexRobot::plot_data("realtime_data.txt");
+  KortexRobot::plot_data.open("realtime_data.txt");
   if (!plot_data.is_open()) {
     std::cerr << "Error: Unable to open data file." << std::endl;
     return 1;

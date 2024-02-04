@@ -122,7 +122,7 @@ public:
 	void plot(vector<vector<float>>data);
 	int start_plot();
 
-  std::ofstream plot_data;
+  ofstream plot_data;
 	FILE *gnu_plot;
 
 protected:
