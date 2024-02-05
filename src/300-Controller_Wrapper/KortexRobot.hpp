@@ -106,6 +106,7 @@ public:
     void output_arm_limits_and_mode();
 
 	const float SPEED_THRESHOLD = 15.0f;
+    const vector<float> position_tolerance = {1.0, 1.2, 1.2, 1.0, 1.0, 1.0};
 
 	void init_pids();
 

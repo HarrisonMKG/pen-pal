@@ -28,12 +28,12 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 void KortexRobot::init_pids()
 {
     actuator_count = base->GetActuatorCount().count();
-	vector<vector<float>> pid_inputs = {{0.05, 0.00002, 0.0},//tuned
-	{0.001, 0.0, 0.0}, //BAD
-	{0.05, 0.0, 0.0}, //tuned
-	{0.2, 0.0, 0.0}, //tuned
-	{0.2, 0.0, 0.0}, //tuned
-	{1, 0.0, 0.0} // tuned
+	vector<vector<float>> pid_inputs = {{0.05, 0.00002, 0.0005},//tuned
+	{0.25, 0.28, 0.025}, //tuned
+    {0.09, 0.08, 0.015}, //tuned
+    {0.2, 0.0, 0.0}, //tuned
+    {0.15, 0.05, 0.005}, //tuned
+    {1, 0.0, 0.0} // tuned
 	}; // This will turn into reading from a json later
     // Probably should include angle limits, max & min control sig limits
     // possibly position thresholds for all angles?
@@ -90,7 +90,9 @@ void KortexRobot::connect()
 	base->ClearFaults();
     std::cout << "Cleared all errors on Robot" << std::endl;
 
-    altered_origin = {0.45, 0.2, 0.2};
+    auto current_pose = base->GetMeasuredCartesianPose();
+    altered_origin = {current_pose.x(),current_pose.y(),current_pose.z()};
+
     bais_vector = {0.0, 0.0, 0.0};  
 }
 
@@ -311,7 +313,7 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         }
         point[0] -= bais_vector[0];
         point[1] -= bais_vector[1];
-        point[2] -= bais_vector[2];
+        point[2] =  altered_origin[2];
 
 		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
 	}
@@ -375,14 +377,17 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
     target_joint_angles_IK = convert_points_to_angles(target_waypoints);
 
+    system("pause");
+
     // Delay to allow for us to confirm angles being given to robot
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     set_actuator_control_mode(1, 1); //Set actuators to velocity mode dont use index values
+    set_actuator_control_mode(1, 2); //Set actuators to velocity mode dont use index values
+    set_actuator_control_mode(1, 3); //Set actuators to velocity mode dont use index values
     set_actuator_control_mode(1, 4); //Set actuators to velocity mode dont use index values
     set_actuator_control_mode(1, 5); //Set actuators to velocity mode dont use index values
 
-    float position_tolerance = 2.0f;
-    float closer_range_limit = 10.f;
+    // float position_tolerance = 1.0f;
     bool return_status = true;
 
     int timer_count = 0;
@@ -409,7 +414,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         int num_of_targets = target_waypoints.size();
         // Real-time loop
 		vector<float> motor_velocity(actuator_count,19.0f); 
-		vector<float> velocity_limits = {30.0, 10.0, 10.0, 10.0, 25.0, 20.0}; 
+		vector<float> velocity_limits = {30.0, 30.0, 30.0, 10.0, 25.0, 20.0}; 
 		vector<int> motor_direction(actuator_count,0);
 
         while(timer_count < (time_duration * 1000))
@@ -421,24 +426,27 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 // PID LOOPS WOULD GO WITHIN HERE
                 for(int i = 0; i < actuator_count - 1; i++)
                     { 
-                        if (i == 1 || i == 2 || i == 5){
+                        if (i == 5){
                             continue;
                         } 
 					// int i = 0;
 
 					float current_pos = base_feedback.actuators(i).position();
                     float target_pos = target_joint_angles_IK[stage][i];
-					float theta = abs(current_pos-target_pos); 
-
-					// if(motor_direction[i] == 0)
-					// {
-					// 	motor_direction[i] = (abs(theta)>abs(360-theta)) ? -1:1;
-					// }
-
                     float position_error = target_pos - current_pos;
-					float control_sig = pids[i].calculate_pid(current_pos, target_pos, 5);
+
+                    if (abs(position_error) >= 180) {
+                        if (position_error > 0){
+                            position_error = position_error - 360;
+                        } else {
+                            position_error = position_error + 360;
+                        }
+                    }
+					
+
+					float control_sig = pids[i].calculate_pid(current_pos, target_pos, i);
                     cout << "Stage: " << stage+1 << "\t Acc: " << i << "\t Current Pos: " << current_pos << "\t Target Pos: " << target_pos;
-                        if (std::abs(position_error) > position_tolerance) {
+                        if (std::abs(position_error) > position_tolerance[i]) {
                             reachPositions[i] = 0;
 							// motor_velocity[i] = control_sig*SPEED_THRESHOLD*motor_direction[i]; 
 							motor_velocity[i] = control_sig*SPEED_THRESHOLD; 
@@ -470,7 +478,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
 
 
-                if(ready_joints == 3){
+                if(ready_joints == 5){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     reachPositions = {0,0,0,0,0};
