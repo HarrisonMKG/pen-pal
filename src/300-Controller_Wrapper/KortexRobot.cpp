@@ -28,9 +28,9 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 void KortexRobot::init_pids()
 {
     actuator_count = base->GetActuatorCount().count();
-	vector<vector<float>> pid_inputs = {{0.13, 0.015, 0.0  },//tuned
+	vector<vector<float>> pid_inputs = {{0.13, 0.015, 0.0},//tuned
 	{0.21, 0.28, 0.037}, //tuned
-    {0.15, 0.25, 0.03}, //tuned
+    {0.2, 0.25, 0.05}, //tuned
     {0.2, 0.01, 0.001}, //tuned
     {0.18, 0.07, 0.01}, //tuned
     {1, 0.0, 0.0} // tuned
@@ -429,7 +429,6 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                     if (i == 5){
                         continue;
                     } 
-                // int i = 0;
 
 					float current_pos = base_feedback.actuators(i).position();
                     float target_pos = target_joint_angles_IK[stage][i];
@@ -443,7 +442,6 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                         }
                     }
 					
-
 					float control_sig = pids[i].calculate_pid(current_pos, target_pos, i);
                     cout << "Stage: " << stage+1 << "\t Acc: " << i << "\t Current Pos: " << current_pos << "\t Target Pos: " << target_pos;
                     if (std::abs(position_error) > position_tolerance[i]) {
@@ -480,7 +478,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 if(ready_joints == 5){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
-                    reachPositions = {0,0,0,0,0};
+                    reachPositions = {0,0,0,0,0,0};
                     // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
                 }
                 if(stage == num_of_targets){
@@ -545,7 +543,7 @@ std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vecto
     // Feeds it into the Kinova IK function that will spit out the target joint angles 
     // for each actuator at each waypoint. Will also ensure all joint angles are positive and within 360.0
     
-    bool verbose = false;
+    bool verbose = true;
     std::vector<std::vector<float>> final_joint_angles;
     k_api::Base::JointAngles input_joint_angles;
     vector<float> current_guess(6,0.0f);
@@ -619,21 +617,13 @@ std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vecto
         current_guess = temp_joints;
         final_joint_angles.push_back(temp_joints);
     }
-    // Ensure all the angles provided are mod360.0 and positive
-    // int num_points = final_joint_angles.size();
-    // for (int section = 0; section != num_points ;section++)
-    // {
-    //     for (int rotator = 0; rotator != 6; rotator++){
-    //         final_joint_angles[section][rotator] = fmod(final_joint_angles[section][rotator], 360.0);
-    //         if (final_joint_angles[section][rotator] < 0.0) {
-    //             final_joint_angles[section][rotator] = final_joint_angles[section][rotator] + 360;
-    //         }
-    //     }
-    // }
+
     if (verbose){
+        std::cout << "IK vs Premade generated Angles:" << std::endl;
+
         for (int i = 0; i < final_joint_angles.size(); i++)
         {
-            std::cout << "IK vs Premade generated Angles:" << i << std::endl;
+            std::cout << i << ": ";
             for (auto currAngle: final_joint_angles[i]){
                 std::cout << currAngle << ", ";
             }
