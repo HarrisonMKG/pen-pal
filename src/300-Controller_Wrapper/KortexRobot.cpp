@@ -28,12 +28,12 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 void KortexRobot::init_pids()
 {
     actuator_count = base->GetActuatorCount().count();
-	vector<vector<float>> pid_inputs = {{0.05, 0.00002, 0.0},//tuned
-	{0.001, 0.0, 0.0}, //BAD
-	{0.05, 0.0, 0.0}, //tuned
-	{0.2, 0.0, 0.0}, //tuned
-	{0.2, 0.0, 0.0}, //tuned
-	{1, 0.0, 0.0} // tuned
+	vector<vector<float>> pid_inputs = {{0.13, 0.015, 0.0},//tuned
+	{0.21, 0.28, 0.037}, //tuned
+    {0.2, 0.25, 0.05}, //tuned
+    {0.2, 0.01, 0.001}, //tuned
+    {0.18, 0.07, 0.01}, //tuned
+    {1, 0.0, 0.0} // tuned
 	}; // This will turn into reading from a json later
     // Probably should include angle limits, max & min control sig limits
     // possibly position thresholds for all angles?
@@ -90,7 +90,9 @@ void KortexRobot::connect()
 	base->ClearFaults();
     std::cout << "Cleared all errors on Robot" << std::endl;
 
-    altered_origin = {0.45, 0.2, 0.2};
+    auto current_pose = base->GetMeasuredCartesianPose();
+    altered_origin = {current_pose.x(),current_pose.y(),current_pose.z()};
+
     bais_vector = {0.0, 0.0, 0.0};  
 }
 
@@ -295,7 +297,7 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 
 std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, float kTheta_x,
                                                                     float kTheta_y, float kTheta_z) {
-    bool verbose = true; 
+    bool verbose = false; 
     // Assuming the format of the csv_file will be in (time, x, y, z) for each line
     vector<float> temp_first_points(3, 0.0);
     int indx = 0;
@@ -311,7 +313,7 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         }
         point[0] -= bais_vector[0];
         point[1] -= bais_vector[1];
-        point[2] -= bais_vector[2];
+        point[2] =  altered_origin[2];
 
 		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
 	}
@@ -375,14 +377,17 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
     target_joint_angles_IK = convert_points_to_angles(target_waypoints);
 
+    system("pause");
+
     // Delay to allow for us to confirm angles being given to robot
-    std::this_thread::sleep_for(std::chrono::milliseconds(5000));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
     set_actuator_control_mode(1, 1); //Set actuators to velocity mode dont use index values
+    set_actuator_control_mode(1, 2); //Set actuators to velocity mode dont use index values
+    set_actuator_control_mode(1, 3); //Set actuators to velocity mode dont use index values
     set_actuator_control_mode(1, 4); //Set actuators to velocity mode dont use index values
     set_actuator_control_mode(1, 5); //Set actuators to velocity mode dont use index values
 
-    float position_tolerance = 2.0f;
-    float closer_range_limit = 10.f;
+    // float position_tolerance = 1.0f;
     bool return_status = true;
 
     int timer_count = 0;
@@ -409,7 +414,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         int num_of_targets = target_waypoints.size();
         // Real-time loop
 		vector<float> motor_velocity(actuator_count,19.0f); 
-		vector<float> velocity_limits = {30.0, 10.0, 10.0, 10.0, 25.0, 20.0}; 
+		vector<float> velocity_limits = {30.0, 30.0, 30.0, 15.0, 25.0, 25.0}; 
 		vector<int> motor_direction(actuator_count,0);
 
         while(timer_count < (time_duration * 1000))
@@ -420,60 +425,60 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 base_feedback = base_cyclic->RefreshFeedback();
                 // PID LOOPS WOULD GO WITHIN HERE
                 for(int i = 0; i < actuator_count - 1; i++)
-                    { 
-                        if (i == 1 || i == 2 || i == 5){
-                            continue;
-                        } 
-					// int i = 0;
+                { 
+                    if (i == 5){
+                        continue;
+                    } 
 
 					float current_pos = base_feedback.actuators(i).position();
                     float target_pos = target_joint_angles_IK[stage][i];
-					float theta = abs(current_pos-target_pos); 
-
-					// if(motor_direction[i] == 0)
-					// {
-					// 	motor_direction[i] = (abs(theta)>abs(360-theta)) ? -1:1;
-					// }
-
                     float position_error = target_pos - current_pos;
-					float control_sig = pids[i].calculate_pid(current_pos, target_pos, 5);
-                    cout << "Stage: " << stage+1 << "\t Acc: " << i << "\t Current Pos: " << current_pos << "\t Target Pos: " << target_pos;
-                        if (std::abs(position_error) > position_tolerance) {
-                            reachPositions[i] = 0;
-							// motor_velocity[i] = control_sig*SPEED_THRESHOLD*motor_direction[i]; 
-							motor_velocity[i] = control_sig*SPEED_THRESHOLD; 
-                             
-                            
 
-							cout << "\t Control Sig: " << std::fixed << std::setprecision(5) << control_sig;
-                            cout << "\t Velocity: " << motor_velocity[i];
-							if (abs(motor_velocity[i]) > velocity_limits[i]) {
-                                
-                                motor_velocity[i] = (motor_velocity[i] / abs(motor_velocity[i])) * velocity_limits[i]; 
-                                cout << "\tCAPPED: " << motor_velocity[i];
-                            }
-                            cout << endl;
-
-                        // TODO: Confirm what we are doing (Position or velocity or both?)
-                            base_command.mutable_actuators(i)->set_position(current_pos);
-                            base_command.mutable_actuators(i)->set_velocity(motor_velocity[i]);
-                        }else{
-                            base_command.mutable_actuators(i)->set_position(target_pos);
-                            // base_command.mutable_actuators(i)->set_velocity(0);
-
-                            std::cout << "\t Reach destination" << std::endl;
-                            // std::cout << "Target: " << current_pos << "    Current: " << target_pos << std::endl;
-                            reachPositions[i] = 1;
-                        } 
+                    if (abs(position_error) >= 180) {
+                        if (position_error > 0){
+                            position_error = position_error - 360;
+                        } else {
+                            position_error = position_error + 360;
+                        }
                     }
+					
+					float control_sig = pids[i].calculate_pid(current_pos, target_pos, i);
+                    cout << "Stage: " << stage+1 << "\t Acc: " << i << "\t Current Pos: " << current_pos << "\t Target Pos: " << target_pos;
+                    if (std::abs(position_error) > position_tolerance[i]) {
+                        reachPositions[i] = 0;
+                        motor_velocity[i] = control_sig*velocity_threshold[i]; 
+
+
+                        cout << "\t Control Sig: " << std::fixed << std::setprecision(5) << control_sig;
+                        cout << "\t Velocity: " << motor_velocity[i];
+                        if (abs(motor_velocity[i]) > velocity_limits[i]) {
+                            
+                            motor_velocity[i] = (motor_velocity[i] / abs(motor_velocity[i])) * velocity_limits[i]; 
+                            cout << "\tCAPPED: " << motor_velocity[i];
+                        }
+                        cout << endl;
+
+                    // TODO: Confirm what we are doing (Position or velocity or both?)
+                        base_command.mutable_actuators(i)->set_position(current_pos);
+                        base_command.mutable_actuators(i)->set_velocity(motor_velocity[i]);
+                    }else{
+                        base_command.mutable_actuators(i)->set_position(target_pos);
+                        
+                        // base_command.mutable_actuators(i)->set_velocity(0);
+
+                        std::cout << "\t Reach destination" << std::endl;
+                        // std::cout << "Target: " << current_pos << "    Current: " << target_pos << std::endl;
+                        reachPositions[i] = 1;
+                    }    
+                }
                 // PID LOOPS ABOVE
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
 
 
-                if(ready_joints == 3){
+                if(ready_joints == 5){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
-                    reachPositions = {0,0,0,0,0};
+                    reachPositions = {0,0,0,0,0,0};
                     // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
                 }
                 if(stage == num_of_targets){
@@ -511,9 +516,6 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     // Set back the servoing mode to Single Level Servoing
     servoingMode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
     base->SetServoingMode(servoingMode);
-
-    // Wait for a bit
-	//no ty
 
     return return_status;
 }
@@ -615,21 +617,13 @@ std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vecto
         current_guess = temp_joints;
         final_joint_angles.push_back(temp_joints);
     }
-    // Ensure all the angles provided are mod360.0 and positive
-    // int num_points = final_joint_angles.size();
-    // for (int section = 0; section != num_points ;section++)
-    // {
-    //     for (int rotator = 0; rotator != 6; rotator++){
-    //         final_joint_angles[section][rotator] = fmod(final_joint_angles[section][rotator], 360.0);
-    //         if (final_joint_angles[section][rotator] < 0.0) {
-    //             final_joint_angles[section][rotator] = final_joint_angles[section][rotator] + 360;
-    //         }
-    //     }
-    // }
+
     if (verbose){
+        std::cout << "IK vs Premade generated Angles:" << std::endl;
+
         for (int i = 0; i < final_joint_angles.size(); i++)
         {
-            std::cout << "IK vs Premade generated Angles:" << i << std::endl;
+            std::cout << i << ": ";
             for (auto currAngle: final_joint_angles[i]){
                 std::cout << currAngle << ", ";
             }
@@ -671,3 +665,5 @@ void KortexRobot::output_arm_limits_and_mode()
         std::cout<< "the soft limit angle is : "<< soft_angle_limits.kinematic_limits_list(i).twist_angular() << std::endl;
     }
 }
+
+
