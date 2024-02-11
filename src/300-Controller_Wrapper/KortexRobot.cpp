@@ -22,12 +22,12 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 	KortexRobot::username = username;
 	KortexRobot::password = password;
 	KortexRobot::connect();
-	init_pids();
+	// init_pids();
 }
 
 void KortexRobot::init_pids()
 {
-    actuator_count = base->GetActuatorCount().count();
+    bool verbose = true;
 	vector<vector<float>> pid_inputs = {{0.13, 0.015, 0.0},//tuned
 	{0.21, 0.28, 0.037}, //tuned
     {0.2, 0.25, 0.05}, //tuned
@@ -47,8 +47,59 @@ void KortexRobot::init_pids()
 		Pid_Loop pid(k_p,k_i,k_d);
 		pids.push_back(pid);
 	}
-}
+    if (verbose) {
+        std::cout << "Gain values used (default): " << std::endl;
+	    for(int i=0; i<6; i++) {
+            std::cout << i <<": {" <<  pid_inputs[i][0] << ", " <<  pid_inputs[i][1] << ", " <<  pid_inputs[i][2] << "}" << std::endl;                
+        }
+    }}
 
+void KortexRobot::get_gain_values(const std::string& filename)
+{   
+    // Gain files should be a text file of 6 lines, 3 values on each line separated by a space
+    // All should have a decimal
+    bool verbose = true;
+	std::vector<vector<float>> pid_inputs = {{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0},{0,0,0}};
+
+    std::ifstream file(filename);
+    float value;
+    if (!file.is_open()) {
+        std::cerr << "Error opening file" << std::endl;
+        return;
+    }
+    int acc_indx = 0;
+    int gain_indx = 0;
+
+    while (file >> value) {
+        pid_inputs[acc_indx][gain_indx] = value;
+        gain_indx += 1;
+        if (gain_indx == 3){
+            acc_indx += 1;
+            gain_indx = 0;
+        }
+        
+        if (acc_indx == 5) {
+            break;
+        }
+    }
+
+    for(int i=0; i<actuator_count-1; i++)
+	{
+		float k_p = pid_inputs[i][0];
+		float k_i = pid_inputs[i][1];
+		float k_d = pid_inputs[i][2];
+
+		Pid_Loop pid(k_p,k_i,k_d);
+		pids.push_back(pid);
+	}
+
+    if (verbose) {
+        std::cout << "Gain values used: " << std::endl;
+	    for(int i=0; i<6; i++) {
+            std::cout << i <<": {" <<  pid_inputs[i][0] << ", " <<  pid_inputs[i][1] << ", " <<  pid_inputs[i][2] << "}" << std::endl;                
+        }
+    }
+}
 
 void KortexRobot::connect()
 {
@@ -379,15 +430,11 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 
     system("pause");
 
-    // Delay to allow for us to confirm angles being given to robot
-    // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
-    set_actuator_control_mode(1, 1); //Set actuators to velocity mode dont use index values
-    set_actuator_control_mode(1, 2); //Set actuators to velocity mode dont use index values
-    set_actuator_control_mode(1, 3); //Set actuators to velocity mode dont use index values
-    set_actuator_control_mode(1, 4); //Set actuators to velocity mode dont use index values
-    set_actuator_control_mode(1, 5); //Set actuators to velocity mode dont use index values
+    // Set all of the actuators to the appropriate control mode (position or velocity currently)
+    for(int i = 1; i < actuator_count; i++) {
+        set_actuator_control_mode(actuator_control_types[i-1], i); //Set actuators to velocity mode dont use index values
+    }
 
-    // float position_tolerance = 1.0f;
     bool return_status = true;
 
     int timer_count = 0;
@@ -410,12 +457,16 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         }
 
         int stage = 0;
-        std::vector<int> reachPositions(5, 0);
         int num_of_targets = target_waypoints.size();
         // Real-time loop
+        /*
+        reachedPositions - mark each actuator and if it is at the target or not
+        motor_velocity - the current velocity for each actuator 
+        velocity_limits - max velocity set for each actuator        
+        */
+        std::vector<int> reachPositions(5, 0);
 		vector<float> motor_velocity(actuator_count,19.0f); 
 		vector<float> velocity_limits = {30.0, 30.0, 30.0, 15.0, 25.0, 25.0}; 
-		vector<int> motor_direction(actuator_count,0);
 
         while(timer_count < (time_duration * 1000))
         {
@@ -429,10 +480,11 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                     if (i == 5){
                         continue;
                     } 
-
 					float current_pos = base_feedback.actuators(i).position();
                     float target_pos = target_joint_angles_IK[stage][i];
                     float position_error = target_pos - current_pos;
+
+                    float temp_position = current_pos; //If an actuator is in position mode, use this variable to find the new position after timestep*velocity
 
                     if (abs(position_error) >= 180) {
                         if (position_error > 0){
@@ -458,9 +510,13 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                         }
                         cout << endl;
 
-                    // TODO: Confirm what we are doing (Position or velocity or both?)
-                        base_command.mutable_actuators(i)->set_position(current_pos);
-                        base_command.mutable_actuators(i)->set_velocity(motor_velocity[i]);
+                        if (actuator_control_types[i] == 0) {
+                            temp_position = temp_position + 0.001*motor_velocity[i];
+                            cout << "NEW POSITION: " << temp_position << endl;
+                            base_command.mutable_actuators(i)->set_position(temp_position);
+                        }else {
+                            base_command.mutable_actuators(i)->set_velocity(motor_velocity[i]);
+                        }
                     }else{
                         base_command.mutable_actuators(i)->set_position(target_pos);
                         

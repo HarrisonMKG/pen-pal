@@ -7,13 +7,13 @@ int main(int argc, char **argv)
 {
     auto parsed_args = ParseExampleArguments(argc, argv);
   	string coordinates_file = parsed_args.coordinates;
+  	string gain_file = parsed_args.gain;
 
-    // Logger logger(parsed_args.output);
 
     KortexRobot pen_pal(parsed_args.ip_address,parsed_args.username,parsed_args.password);
-
+    
     // pen_pal.go_home();
-
+    pen_pal.get_gain_values(gain_file);
     // pen_pal.mylogger.Log("Go home completed");
     // pen_pal.mylogger.Log("Entering Writing Mode");
 	  // pen_pal.writing_mode();
