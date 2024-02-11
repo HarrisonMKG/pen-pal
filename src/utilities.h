@@ -23,6 +23,7 @@ struct ExampleArgs
 
     std::string output; //Output dir for logger class
     std::string coordinates; //For KortexRobot class
+    std::string gain; //For KortexRobot class
 };
 
 ExampleArgs ParseExampleArguments(int argc, char *argv[]);
