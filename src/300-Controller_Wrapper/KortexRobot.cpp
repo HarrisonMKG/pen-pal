@@ -414,6 +414,8 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         serialized_data.append("\nJoint[5]");
         google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
         std::cout << serialized_data << std::endl << std::endl;
+        serialized_data.append("\nBASE");
+        google::protobuf::util::MessageToJsonString(data.base(), &serialized_data);
     */
     };
 
@@ -424,9 +426,14 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
    
     std::vector<vector<float>> target_joint_angles_IK;
     std::vector<vector<float>> target_waypoints;
+    
+    // DEV-NICK: REMOVE WHEN DONE TESTING
 
-    target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
-    target_joint_angles_IK = convert_points_to_angles(target_waypoints);
+    // target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
+    // target_joint_angles_IK = convert_points_to_angles(target_waypoints);
+    target_waypoints = {{20,15.0,0,0,0,0}, {350,50.0,0,0,0,0}};
+    target_joint_angles_IK = target_waypoints;   
+
 
     system("pause");
 
@@ -466,7 +473,6 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         */
         std::vector<int> reachPositions(5, 0);
 		vector<float> motor_velocity(actuator_count,19.0f); 
-		vector<float> velocity_limits = {30.0, 30.0, 30.0, 15.0, 25.0, 25.0}; 
 
         while(timer_count < (time_duration * 1000))
         {
@@ -477,7 +483,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 // PID LOOPS WOULD GO WITHIN HERE
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
-                    if (i == 5){
+                    if (i != 1){
                         continue;
                     } 
 					float current_pos = base_feedback.actuators(i).position();
@@ -499,14 +505,14 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                     if (std::abs(position_error) > position_tolerance[i]) {
                         reachPositions[i] = 0;
                         motor_velocity[i] = control_sig*velocity_threshold[i]; 
-
+                        
 
                         cout << "\t Control Sig: " << std::fixed << std::setprecision(5) << control_sig;
                         cout << "\t Velocity: " << motor_velocity[i];
                         if (abs(motor_velocity[i]) > velocity_limits[i]) {
                             
-                            motor_velocity[i] = (motor_velocity[i] / abs(motor_velocity[i])) * velocity_limits[i]; 
-                            cout << "\tCAPPED: " << motor_velocity[i];
+                        motor_velocity[i] = (motor_velocity[i] / abs(motor_velocity[i])) * velocity_limits[i]; 
+                        cout << "\tCAPPED: " << motor_velocity[i];
                         }
                         cout << endl;
 
@@ -515,9 +521,10 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                             cout << "NEW POSITION: " << temp_position << endl;
                             base_command.mutable_actuators(i)->set_position(temp_position);
                         }else {
+                            base_command.mutable_actuators(i)->set_position(current_pos);
                             base_command.mutable_actuators(i)->set_velocity(motor_velocity[i]);
                         }
-                    }else{
+                                            }else{
                         base_command.mutable_actuators(i)->set_position(target_pos);
                         
                         // base_command.mutable_actuators(i)->set_velocity(0);
@@ -531,14 +538,15 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
 
 
-                if(ready_joints == 5){
+                if(ready_joints == 2){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     reachPositions = {0,0,0,0,0,0};
                     // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
                 }
                 if(stage == num_of_targets){
-                    break;
+                    stage = 0;
+                    // break;
                 }
 
                 // 
@@ -707,19 +715,33 @@ void KortexRobot::output_arm_limits_and_mode()
     auto hard_limits = control_config->GetKinematicHardLimits();
     auto soft_limits = control_config->GetKinematicSoftLimits(control_mode);
     auto soft_angle_limits = control_config->GetAllKinematicSoftLimits();
-
-    std::cout<< control_mode.control_mode()<< std::endl;
     
     std::cout<< "control mode is: "<< control_mode.control_mode() << std::endl;
     std::cout<< "actuator control mode is: "<< act_mode.command_mode() << std::endl;
     
-    std::cout<< "the hard limits are: "<< hard_limits.twist_angular() << std::endl;
-    std::cout<< "the soft limits are: "<< soft_limits.twist_angular() << std::endl;
+    std::cout<< "The HARD limits are: " <<std::endl;
+    std::cout<< "Twist Angular: \t" << hard_limits.twist_angular() << std::endl;
+    std::cout<< "Twist Linear: \t" << hard_limits.twist_linear() << std::endl;
+    std::cout<< "[Joint 1] Speed: \t" << hard_limits.joint_speed_limits(0) << "\tAcceleration: " << hard_limits.joint_acceleration_limits(0) << std::endl;
+    std::cout<< "[Joint 2] Speed: \t" << hard_limits.joint_speed_limits(1) << "\tAcceleration: " << hard_limits.joint_acceleration_limits(1) << std::endl;
+    std::cout<< "[Joint 3] Speed: \t" << hard_limits.joint_speed_limits(2) << "\tAcceleration: " << hard_limits.joint_acceleration_limits(2) << std::endl;
+    std::cout<< "[Joint 4] Speed: \t" << hard_limits.joint_speed_limits(3) << "\tAcceleration: " << hard_limits.joint_acceleration_limits(3) << std::endl;
+    std::cout<< "[Joint 5] Speed: \t" << hard_limits.joint_speed_limits(4) << "\tAcceleration: " << hard_limits.joint_acceleration_limits(4) << std::endl;
+    std::cout<< "[Joint 6] Speed: \t" << hard_limits.joint_speed_limits(5) << "\tAcceleration: " << hard_limits.joint_acceleration_limits(5) << std::endl;
+    std::cout<< "The SOFT limits are: " <<std::endl;
+    std::cout<< "Twist Angular: \t" << soft_limits.twist_angular() << std::endl;
+    std::cout<< "Twist Linear: \t" << soft_limits.twist_linear() << std::endl;
+    // std::cout<< "[Joint 1] Speed: \t" << soft_limits.joint_speed_limits(0) << "\tAcceleration: " << soft_limits.joint_acceleration_limits(0) << std::endl;
+    // std::cout<< "[Joint 2] Speed: \t" << soft_limits.joint_speed_limits(1) << "\tAcceleration: " << soft_limits.joint_acceleration_limits(1) << std::endl;
+    // std::cout<< "[Joint 3] Speed: \t" << soft_limits.joint_speed_limits(2) << "\tAcceleration: " << soft_limits.joint_acceleration_limits(2) << std::endl;
+    // std::cout<< "[Joint 4] Speed: \t" << soft_limits.joint_speed_limits(3) << "\tAcceleration: " << soft_limits.joint_acceleration_limits(3) << std::endl;
+    // std::cout<< "[Joint 5] Speed: \t" << soft_limits.joint_speed_limits(4) << "\tAcceleration: " << soft_limits.joint_acceleration_limits(4) << std::endl;
+    // std::cout<< "[Joint 6] Speed: \t" << soft_limits.joint_speed_limits(5) << "\tAcceleration: " << soft_limits.joint_acceleration_limits(5) << std::endl;
+    // std::cout<< "Joint Speed: \t" << soft_limits.joint_speed_limits() << std::endl;
+    // std::cout<< "Joint Acceleration: \t" << soft_limits.joint_acceleration_limits() << std::endl;
     // soft_angle_limits = control_config->GetAllKinematicSoftLimits();
 
-    for (int i = 0; i < 12; i++){
-        std::cout<< "the soft limit angle is : "<< soft_angle_limits.kinematic_limits_list(i).twist_angular() << std::endl;
-    }
+   
 }
 
 

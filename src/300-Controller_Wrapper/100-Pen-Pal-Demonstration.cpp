@@ -14,6 +14,7 @@ int main(int argc, char **argv)
     
     // pen_pal.go_home();
     pen_pal.get_gain_values(gain_file);
+    // pen_pal.output_arm_limits_and_mode();
     // pen_pal.mylogger.Log("Go home completed");
     // pen_pal.mylogger.Log("Entering Writing Mode");
 	  // pen_pal.writing_mode();
