@@ -291,13 +291,17 @@ void KortexRobot::set_actuator_control_mode(int mode_control, int actuator_indx)
     auto control_mode_message = k_api::ActuatorConfig::ControlModeInformation();
     std::cout << "changed the mode to: ";
 
-    if (mode_control == 1) {
+    if (mode_control == 0) {
+        std::cout << "POSITION" << std::endl;
+        control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+    }else if (mode_control == 1) {
         std::cout << "VELOCITY" << std::endl;
         control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::VELOCITY);
     }else {
-        std::cout << "POSITION" << std::endl;
-        control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::POSITION);
+        std::cout << "TORQUE" << std::endl;
+        control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::TORQUE);
     }
+
     if (actuator_indx == -1) {
         actuator_config->SetControlMode(control_mode_message,1); 
         actuator_config->SetControlMode(control_mode_message,2);
@@ -398,25 +402,26 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     auto lambda_fct_callback = [](const Kinova::Api::Error &err, const k_api::BaseCyclic::Feedback data)
     {
         // TODO: Remove this in a real-time loop
-		/*
+		// /*
         std::string serialized_data;
         std::string output_data; 
-        serialized_data.append("Joint[0]");
-        google::protobuf::util::MessageToJsonString(data.actuators(0), &serialized_data);
+        // serialized_data.append("Joint[0]");
+        // google::protobuf::util::MessageToJsonString(data.actuators(0), &serialized_data);
         serialized_data.append("\nJoint[1]");
         google::protobuf::util::MessageToJsonString(data.actuators(1), &serialized_data);
-        serialized_data.append("\nJoint[2]");
-        google::protobuf::util::MessageToJsonString(data.actuators(2), &serialized_data);
-        serialized_data.append("\nJoint[3]");
-        google::protobuf::util::MessageToJsonString(data.actuators(3), &serialized_data);
-        serialized_data.append("\nJoint[4]");
-        google::protobuf::util::MessageToJsonString(data.actuators(4), &serialized_data);
-        serialized_data.append("\nJoint[5]");
-        google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
+        // serialized_data.append("\nJoint[2]");
+        // google::protobuf::util::MessageToJsonString(data.actuators(2), &serialized_data);
+        // serialized_data.append("\nJoint[3]");
+        // google::protobuf::util::MessageToJsonString(data.actuators(3), &serialized_data);
+        // serialized_data.append("\nJoint[4]");
+        // google::protobuf::util::MessageToJsonString(data.actuators(4), &serialized_data);
+        // serialized_data.append("\nJoint[5]");
+        // google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
+        // serialized_data.append("\nBASE");
+        // google::protobuf::util::MessageToJsonString(data.base(), &serialized_data);
+
         std::cout << serialized_data << std::endl << std::endl;
-        serialized_data.append("\nBASE");
-        google::protobuf::util::MessageToJsonString(data.base(), &serialized_data);
-    */
+    // */
     };
 
     k_api::BaseCyclic::Feedback base_feedback;
@@ -431,7 +436,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 
     // target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
     // target_joint_angles_IK = convert_points_to_angles(target_waypoints);
-    target_waypoints = {{20,15.0,0,0,0,0}, {350,50.0,0,0,0,0}};
+    target_waypoints = {{20,35.0,0,0,0,0}, {350,50.0,0,0,0,0}};
     target_joint_angles_IK = target_waypoints;   
 
 
@@ -472,7 +477,6 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         velocity_limits - max velocity set for each actuator        
         */
         std::vector<int> reachPositions(5, 0);
-		vector<float> motor_velocity(actuator_count,19.0f); 
 
         while(timer_count < (time_duration * 1000))
         {
@@ -483,14 +487,13 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 // PID LOOPS WOULD GO WITHIN HERE
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
+                    // Skip specific Actuators during testing 
                     if (i != 1){
                         continue;
                     } 
 					float current_pos = base_feedback.actuators(i).position();
                     float target_pos = target_joint_angles_IK[stage][i];
                     float position_error = target_pos - current_pos;
-
-                    float temp_position = current_pos; //If an actuator is in position mode, use this variable to find the new position after timestep*velocity
 
                     if (abs(position_error) >= 180) {
                         if (position_error > 0){
@@ -501,31 +504,34 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                     }
 					
 					float control_sig = pids[i].calculate_pid(current_pos, target_pos, i);
-                    cout << "Stage: " << stage+1 << "\t Acc: " << i << "\t Current Pos: " << current_pos << "\t Target Pos: " << target_pos;
-                    if (std::abs(position_error) > position_tolerance[i]) {
+                    cout << "Stage: " << stage+1 << "\tAcc: " << i << "\tCurrent Pos: " << current_pos << "\t Target Pos: " << target_pos;
+                    if (std::abs(position_error) > actuator_pos_tolerance[i]) {
+                        // Update command based on control signal (And control mode of actuator)
                         reachPositions[i] = 0;
-                        motor_velocity[i] = control_sig*velocity_threshold[i]; 
+                        motor_command[i] = control_sig*actuator_base_unit[i]; 
                         
 
                         cout << "\t Control Sig: " << std::fixed << std::setprecision(5) << control_sig;
-                        cout << "\t Velocity: " << motor_velocity[i];
-                        if (abs(motor_velocity[i]) > velocity_limits[i]) {
+                        cout << "\t Velocity: " << motor_command[i];
+                        if (abs(motor_command[i]) > unit_limits[i]) {
                             
-                        motor_velocity[i] = (motor_velocity[i] / abs(motor_velocity[i])) * velocity_limits[i]; 
-                        cout << "\tCAPPED: " << motor_velocity[i];
+                            motor_command[i] = (motor_command[i] / abs(motor_command[i])) * unit_limits[i]; 
+                            cout << "\tCAPPED: " << motor_command[i];
                         }
                         cout << endl;
 
                         if (actuator_control_types[i] == 0) {
-                            temp_position = temp_position + 0.001*motor_velocity[i];
-                            cout << "NEW POSITION: " << temp_position << endl;
-                            base_command.mutable_actuators(i)->set_position(temp_position);
-                        }else {
                             base_command.mutable_actuators(i)->set_position(current_pos);
-                            base_command.mutable_actuators(i)->set_velocity(motor_velocity[i]);
+                        }else if (actuator_control_types[i] == 1) {
+                            base_command.mutable_actuators(i)->set_position(current_pos);
+                            base_command.mutable_actuators(i)->set_velocity(motor_command[i]);
+                        } else {
+                            base_command.mutable_actuators(i)->set_position(current_pos);
+                            base_command.mutable_actuators(i)->set_torque_joint(abs(motor_command[i]));
                         }
-                                            }else{
-                        base_command.mutable_actuators(i)->set_position(target_pos);
+                        
+                    }else{
+                        base_command.mutable_actuators(i)->set_position(current_pos);
                         
                         // base_command.mutable_actuators(i)->set_velocity(0);
 

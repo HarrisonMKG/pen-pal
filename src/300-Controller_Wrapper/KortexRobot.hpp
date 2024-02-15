@@ -105,10 +105,11 @@ public:
 
     void output_arm_limits_and_mode();
 
-    const vector<float> position_tolerance = {0.5, 0, 1.2, 1.0, 1.0, 1.0};
-    const vector<float> velocity_threshold = {20.0f, 30.0f, 10.0f, 10.0f, 10.0f, 10.0f};
+    const vector<float> actuator_pos_tolerance = {0.5, 0, 1.2, 1.0, 1.0, 1.0};
+    const vector<float> actuator_base_unit = {20.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f};
     const vector<int> actuator_control_types = {0,1,0,0,0,0};
-	const vector<float> velocity_limits = {30.0, 10.0, 30.0, 15.0, 25.0, 25.0}; 
+	const vector<float> unit_limits = {30.0, 10, 30.0, 15.0, 25.0, 25.0}; 
+    std::vector<float> motor_command= {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f}; //Vector of current_velocities/torques to use in calculation for next command
 
 
 	void init_pids();
