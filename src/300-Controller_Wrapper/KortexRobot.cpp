@@ -436,7 +436,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 
     // target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
     // target_joint_angles_IK = convert_points_to_angles(target_waypoints);
-    target_waypoints = {{20,35.0,0,0,0,0}, {20,50.0,0,0,0,0}};
+    target_waypoints = {{10,35.0,0,0,0,0}, {45,50.0,0,0,0,0}};
     target_joint_angles_IK = target_waypoints;   
 
 
@@ -493,7 +493,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
                     // Skip specific Actuators during testing 
-                    if (i != 1){
+                    if (i != 0 || i != 1){
                         continue;
                     } 
 					float current_pos = base_feedback.actuators(i).position();
@@ -553,16 +553,20 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
 
 
-                if(ready_joints == 1){
+                if(ready_joints == 2){
                     stage_start = 0;
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     reachPositions = {0,0,0,0,0,0};
+                    for(int i = 0; i < actuator_count - 1; i++){
+                        pids[i].clear_integral();
+                    }
                     
                     // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
                 }
                 if(stage == num_of_targets){
                     stage = 0;
+                   
                     // break;
                 }
 

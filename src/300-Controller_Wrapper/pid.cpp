@@ -12,6 +12,7 @@ Pid_Loop::Pid_Loop(float k_p, float k_i, float k_d)
 	Pid_Loop::k_d = k_d;
 	integral = 0;
 	prevErr = 0;
+	clear_int = 0;
 }
 
 float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuator_index)
@@ -28,12 +29,11 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 		}
 	}
 
-
 	// Proportional term
 	float P = k_p * error;
 	// Integral term
 	integral += error * d_t;
-	
+	std::cout<< "current integral: " <<integral<< std::endl;
 	float I = k_i * integral;
 	// Derivative term
 	derivative = (error - prevErr) / d_t;
@@ -60,5 +60,11 @@ void Pid_Loop::set_direction(int direction)
 	{
 		Pid_Loop::direction = direction;
 	}
+	return;
+}
+
+void Pid_Loop::clear_integral()
+{
+	integral = 0;
 	return;
 }
