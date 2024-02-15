@@ -436,7 +436,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 
     // target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
     // target_joint_angles_IK = convert_points_to_angles(target_waypoints);
-    target_waypoints = {{10,35.0,0,0,0,0}, {45,50.0,0,0,0,0}};
+    target_waypoints = {{20,42,270,355,325,77}, {35,47,280,0,210,70}};
     target_joint_angles_IK = target_waypoints;   
 
 
@@ -493,7 +493,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
                     // Skip specific Actuators during testing 
-                    if (i != 0 || i != 1){
+                    if (i==4){
                         continue;
                     } 
 					float current_pos = base_feedback.actuators(i).position();
@@ -553,7 +553,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
 
 
-                if(ready_joints == 2){
+                if(ready_joints == 4){
                     stage_start = 0;
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;

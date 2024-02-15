@@ -12,7 +12,6 @@ Pid_Loop::Pid_Loop(float k_p, float k_i, float k_d)
 	Pid_Loop::k_d = k_d;
 	integral = 0;
 	prevErr = 0;
-	clear_int = 0;
 }
 
 float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuator_index)
@@ -21,7 +20,9 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 	int direction = 1; 
 	float error = setPoint - currentLocation; 
 	// float other_error = currentLocation - setPoint; 
-	if (abs(error) >= 180) {
+	if (actuator_index == 4 && ((currentLocation>300&& setPoint >120))){
+		error = currentLocation-setPoint-300; 
+	}else if (abs(error) >= 180) {
 		if (error > 0){
 			error = error - 360;
 		} else {
@@ -33,7 +34,6 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 	float P = k_p * error;
 	// Integral term
 	integral += error * d_t;
-	std::cout<< "current integral: " <<integral<< std::endl;
 	float I = k_i * integral;
 	// Derivative term
 	derivative = (error - prevErr) / d_t;
