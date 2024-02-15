@@ -350,18 +350,21 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 	return result;
 }
 
-std::vector<std::vector<float>> KortexRobot::write_csv(const std::string& filename, std::string data) {
+void KortexRobot::write_csv(const std::string& filename, vector<vector<float>> data) {
 	std::vector<std::vector<float>> result;
 
 	std::ofstream file(filename);
 	if (!file.is_open()) {
 		std::cerr << "Error opening file: " << filename << std::endl;
-		return result;
 	}
-  file << data;
-	file.close();
 
-	return result;
+  for(auto point: data)
+    for(int i=0; i<3; i++)
+    {
+      file << point[i];
+    }
+
+	file.close();
 }
 
 std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, float kTheta_x,

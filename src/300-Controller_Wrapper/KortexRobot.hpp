@@ -121,7 +121,7 @@ public:
 
     int actuator_count;
     vector<Pid_Loop> pids;
-  std::vector<std::vector<float>> write_csv(const std::string& filename, std::string data);
+  void write_csv(const std::string& filename, vector<vector<float>>data);
 
 	const vector<float> surface_cords = {0.455,0,0.115};
 	void find_paper();
