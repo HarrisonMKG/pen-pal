@@ -10,6 +10,8 @@ Pid_Loop::Pid_Loop(float k_p, float k_i, float k_d)
 	Pid_Loop::k_p = k_p;
 	Pid_Loop::k_i = k_i;
 	Pid_Loop::k_d = k_d;
+	integral = 0;
+	prevErr = 0;
 }
 
 float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuator_index)
@@ -18,7 +20,6 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 	int direction = 1; 
 	float error = setPoint - currentLocation; 
 	// float other_error = currentLocation - setPoint; 
-	// cout << "ERROR: " << error << endl;
 	if (abs(error) >= 180) {
 		if (error > 0){
 			error = error - 360;
@@ -26,26 +27,13 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 			error = error + 360;
 		}
 	}
-	// cout << "UPDATED ERROR: " << error << endl;
 
-	/*
-	float theta = currentLocation-setPoint; 
-	
-	if(abs(theta)>abs(360-theta))
-	{
-		direction = -1;
-	}
-	*/
 
 	// Proportional term
 	float P = k_p * error;
 	// Integral term
-	float integral;
 	integral += error * d_t;
-	if(abs(integral)<INTEGRAL_CLAMP)
-	{
-		integral = INTEGRAL_CLAMP;
-	}
+	
 	float I = k_i * integral;
 	// Derivative term
 	derivative = (error - prevErr) / d_t;

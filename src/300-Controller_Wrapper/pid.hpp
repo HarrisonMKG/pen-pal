@@ -32,6 +32,7 @@ public:
 	void set_direction(int direction);
 	float calculate_pid(float currentLocation, float setPoint, int actuator_index);
 	const float INTEGRAL_CLAMP = 0.01;
+	void clear_integral();
 
 	Pid_Loop(float k_p, float k_i, float k_d);
 	~Pid_Loop();
