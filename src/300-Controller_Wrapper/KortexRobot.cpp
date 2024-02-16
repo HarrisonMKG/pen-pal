@@ -419,7 +419,7 @@ void KortexRobot::calculate_bias(std::vector<float> first_waypoint) {
     cout << "BIAS: X: " << bais_vector[0] << "\tY: " <<bais_vector[1] << "\tZ: " << bais_vector[2] << endl;
 }
 
-bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition, float kTheta_x, 
+vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition, float kTheta_x, 
 		float kTheta_y, float kTheta_z)
 {
     // Define the callback function used in Refresh_callback
@@ -463,12 +463,12 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         set_actuator_control_mode(actuator_control_types[i-1], i); //Set actuators to velocity mode dont use index values
     }
 
-    bool return_status = true;
 
     int timer_count = 0;
     int64_t now = 0;
     int64_t last = 0;
     int timeout = 0;
+    vector<vector<float>> measured_waypoints;
 
     //mylogger.Log("Initializing the arm for velocity low-level control example", INFO);
     try
@@ -587,12 +587,10 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     catch (k_api::KDetailedException& ex)
     {
         //mylogger.Log("Kortex error: " + std::string(ex.what()), ERR);
-        return_status = false;
     }
     catch (std::runtime_error& ex2)
     {
         //mylogger.Log("Runtime error: " + std::string(ex2.what()), ERR);
-        return_status = false;
     }
  
     set_actuator_control_mode(0);
@@ -600,8 +598,8 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     // Set back the servoing mode to Single Level Servoing
     servoingMode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
     base->SetServoingMode(servoingMode);
-
-    return return_status;
+    
+  return measured_waypoints;
 }
 
 
