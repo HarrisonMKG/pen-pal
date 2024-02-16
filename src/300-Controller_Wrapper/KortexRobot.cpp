@@ -438,7 +438,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     //                      ALSO: Need to change the ready positions check to move onto new stages and which joints are skipped in RT loop
     target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
     target_joint_angles_IK = convert_points_to_angles(target_waypoints);
-    // target_waypoints = {{350,15,270,355,325,77}, {50,40,280,0,210,70}};
+    // target_waypoints = {{350,15,310,355,110,77}, {50,40,275,0,250,70}};
     // target_joint_angles_IK = target_waypoints;   
 
     system("pause");
@@ -486,7 +486,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
                     // Skip specific Actuators during testing 
-                    if (i!=1){
+                    if (i==3 || i==5){
                         continue;
                     } 
 
@@ -541,15 +541,15 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 }
                 // See how many joints are at their target, move onto the next waypoint if all are (Can change how many are "all")
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
-                if(ready_joints == 1){
+                if(ready_joints == 4){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     reachPositions = {0,0,0,0,0,0};
                 }
                 // Break out of loop if current target is the last 
                 if(stage == num_of_targets){
-                    // stage = 0;
-                   break;
+                    stage = 0;
+                //    break;
                 }
 
                 // If still going, send next commands to Arm and recieve feedback in the lambda_callback function.
