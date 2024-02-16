@@ -350,7 +350,7 @@ void KortexRobot::write_csv(const std::string& filename, vector<vector<float>> d
 	std::vector<std::vector<float>> result;
 
 	std::ofstream file(filename);
-  col_headers = {"seconds","x","y","z"};
+  vector<string> col_headers = {"seconds","x","y","z"};
 
   //populate headers
   for(int i= 0; i<col_headers.size();i++)
