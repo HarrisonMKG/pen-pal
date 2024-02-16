@@ -364,15 +364,23 @@ void KortexRobot::generate_performance_file(const std::string& filename, vector<
   }
   file << endl;
 
-  //populate data 
-  for(auto point: data)
+  k_api::Base::Pose pose;
+
+  //populate data
+  for(auto angles: data)
   {
-    for(int i=0; i<col_headers.size(); i++)//seconds,x,y,z
+    file << angles[0] << ','; // Seconds
+    angles.erase(angles.begin());
+    Kinova::Api::Base::JointAngles joint_angles;
+
+    for(auto angle: angles)
     {
-      file << point[i];
-      if(i=!col_headers.size()-1) file << ",";
+      Kinova::Api::Base::JointAngle* joint_angle = joint_angles.add_joint_angles();
+      joint_angle->set_value(angle);
     }
-    file << endl;
+
+    pose = base->ComputeForwardKinematics(joint_angles);
+    file << pose.x() << ',' << pose.y() << ',' << pose.z() << endl;
   }
 
 	file.close();
@@ -585,7 +593,8 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                     stage_start = 0;
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
-                    vector<float> current_joint_angles{GetTickUs()};
+                    vector<float> current_joint_angles;
+                    current_joint_angles.push_back(GetTickUs());
 
 
                     for(int i=0; i<actuator_count-1; i++)
