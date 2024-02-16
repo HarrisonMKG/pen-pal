@@ -89,7 +89,7 @@ public:
     ~KortexRobot();
     void set_actuator_control_mode(int mode_control, int actuator_indx = -1);
 	void writing_mode();
-	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition,
+	vector<vector<float>> move_cartesian(std::vector<std::vector<float>> waypointsDefinition,
 					float kTheta_x = 180.0f, float kTheta_y = 0.0f, float kTheta_z = 90.0f);
 
 	std::vector<std::vector<float>> convert_points_to_angles(std::vector<vector<float>> target_points);
