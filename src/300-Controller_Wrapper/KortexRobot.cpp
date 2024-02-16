@@ -354,15 +354,26 @@ void KortexRobot::write_csv(const std::string& filename, vector<vector<float>> d
 	std::vector<std::vector<float>> result;
 
 	std::ofstream file(filename);
-	if (!file.is_open()) {
-		std::cerr << "Error opening file: " << filename << std::endl;
-	}
+  col_headers = {"seconds","x","y","z"};
 
+  //populate headers
+  for(int i= 0; i<col_headers.size();i++)
+  {
+    file<<col_headers[i];
+    if(i=!col_headers.size()-1) file << ",";
+  }
+  file << endl;
+
+  //populate data 
   for(auto point: data)
-    for(int i=0; i<3; i++)
+  {
+    for(int i=0; i<col_headers.size(); i++)//seconds,x,y,z
     {
       file << point[i];
+      if(i=!col_headers.size()-1) file << ",";
     }
+    file << endl;
+  }
 
 	file.close();
 }
