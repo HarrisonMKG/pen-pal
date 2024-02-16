@@ -478,7 +478,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
     int64_t stage_start = 0;
 
     int timeout = 0;
-    vector<vector<float>> measured_waypoints;
+    vector<vector<float>> measured_angles;
 
     //mylogger.Log("Initializing the arm for velocity low-level control example", INFO);
     try
@@ -585,6 +585,15 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                     stage_start = 0;
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
+                    vector<float> current_joint_angles{GetTickUs()};
+
+
+                    for(int i=0; i<actuator_count-1; i++)
+                    {
+                      current_joint_angles.push_back(base_feedback.actuators(i).position());
+                    }
+
+                    measured_angles.push_back(current_joint_angles);
                     reachPositions = {0,0,0,0,0,0};
                     for(int i = 0; i < actuator_count - 1; i++){
                         pids[i].clear_integral();
@@ -628,7 +637,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
     servoingMode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
     base->SetServoingMode(servoingMode);
     
-  return measured_waypoints;
+  return measured_angles;
 }
 
 
