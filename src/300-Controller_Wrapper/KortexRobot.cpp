@@ -433,22 +433,21 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     std::vector<vector<float>> target_waypoints;
     
     // DEV-NICK: REMOVE WHEN DONE TESTING
-
-    // target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
-    // target_joint_angles_IK = convert_points_to_angles(target_waypoints);
-    target_waypoints = {{20,42,270,355,325,77}, {35,47,280,0,210,70}};
-    target_joint_angles_IK = target_waypoints;   
-
+    // TESTING PURPOSES: Use the second set of assignments for target_Waypoints and target_joint_angles_IK for 
+    //                      general tuning of individual actuators. 
+    //                      ALSO: Need to change the ready positions check to move onto new stages and which joints are skipped in RT loop
+    target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
+    target_joint_angles_IK = convert_points_to_angles(target_waypoints);
+    // target_waypoints = {{350,15,270,355,325,77}, {50,40,280,0,210,70}};
+    // target_joint_angles_IK = target_waypoints;   
 
     system("pause");
-
 
     bool return_status = true;
 
     int timer_count = 0;
     int64_t now = 0;
     int64_t last = 0;
-    int64_t stage_start = 0;
 
     int timeout = 0;
 
@@ -467,7 +466,6 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         }
         base_feedback = base_cyclic->Refresh(base_command);
 
-
         // Set all of the actuators to the appropriate control mode (position or velocity currently)
         for(int i = 1; i < actuator_count; i++) {
             set_actuator_control_mode(actuator_control_types[i-1], i); //Set actuators to velocity mode dont use index values
@@ -475,14 +473,9 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 
         int stage = 0;
         int num_of_targets = target_waypoints.size();
-        // Real-time loop
-        /*
-        reachedPositions - mark each actuator and if it is at the target or not
-        motor_velocity - the current velocity for each actuator 
-        velocity_limits - max velocity set for each actuator        
-        */
         std::vector<int> reachPositions(5, 0);
 
+        // Real-time loop
         while(timer_count < (time_duration * 1000))
         {
             now = GetTickUs();
@@ -493,15 +486,16 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
                     // Skip specific Actuators during testing 
-                    if (i==4){
+                    if (i!=1){
                         continue;
                     } 
+
 					float current_pos = base_feedback.actuators(i).position();
 					float current_velocity = base_feedback.actuators(i).velocity();
 					float current_torque = base_feedback.actuators(i).torque();
                     float target_pos = target_joint_angles_IK[stage][i];
+                    // Only use position error here aswell to see if we can signal joint reached its target
                     float position_error = target_pos - current_pos;
-
                     if (abs(position_error) >= 180) {
                         if (position_error > 0){
                             position_error = position_error - 360;
@@ -509,77 +503,72 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                             position_error = position_error + 360;
                         }
                     }
-					
+
+                    // Get control signal from calculate PID
 					float control_sig = pids[i].calculate_pid(current_pos, target_pos, i);
-                    cout << "[" << stage+1 << ", " << i << "]\tCurr vs Target Pos: (" << current_pos << ", " << target_pos << ")";
-                    cout << "\tCurrent vs Motor Vel: (" << current_velocity << ", " << motor_command[i] <<")";
+                    cout << "[" << stage+1 << ", " << i << "]\tCurr vs Target Pos: (";
+                    cout << std::fixed << std::setprecision(3) << current_pos << ", " << std::fixed << std::setprecision(3) << target_pos << ")";
+                    cout << "\tCurrent vs New Vel: (" << std::fixed << std::setprecision(3) << current_velocity << ", " << std::fixed << std::setprecision(3) << control_sig <<")";
+                    // Limit the max absolute value of the new velocity/command being sent
+                    if (abs(control_sig) > unit_limits[i]) {
+                        control_sig = (control_sig / abs(control_sig)) * unit_limits[i]; 
+                        cout << "\t CAP SIG: " << control_sig;
+                    }
+
+                     // Mark if joint is at destination
                     if (std::abs(position_error) > actuator_pos_tolerance[i]) {
                         // Update command based on control signal (And control mode of actuator)
                         reachPositions[i] = 0;
-                        float temp_new_command = control_sig*actuator_base_unit[i]; 
-                        // motor_command[i] = control_sig*actuator_base_unit[i]; 
-                        
-                        cout << "\t New Vel: " << temp_new_command;
-                        cout << "\t Control Sig: " << std::fixed << std::setprecision(5) << control_sig;
-                        // Limit the max absolute value of the new velocity/command being sent
-                        if (abs(temp_new_command) > unit_limits[i]) {
-                            temp_new_command = (temp_new_command / abs(temp_new_command)) * unit_limits[i]; 
-                            cout << "\tCAP: " << temp_new_command;
-                        }
-
-                        motor_command[i] = temp_new_command;
-                        
-                        cout << endl;
-
-                        if (actuator_control_types[i] == 0) {
-                            float temp_pos = current_pos + motor_command[i] * 0.001;
-                            base_command.mutable_actuators(i)->set_position(temp_pos);
-                        }else if (actuator_control_types[i] == 1) {
-                            base_command.mutable_actuators(i)->set_position(current_pos);
-                            base_command.mutable_actuators(i)->set_velocity(motor_command[i]);
-                        } else {
-                            base_command.mutable_actuators(i)->set_position(current_pos);
-                            base_command.mutable_actuators(i)->set_torque_joint(abs(current_torque));
-                        }
-                        
-                    }else{
-                        base_command.mutable_actuators(i)->set_position(current_pos);
-                       
-                        std::cout << "\t Reach destination" << std::endl;
+                    } else {                       
+                        std::cout << "\t ARRIVED";
                         reachPositions[i] = 1;
-                    }    
+                    }
+                    cout << endl;
+                    motor_command[i] = control_sig;
+
+                    // Update the joints position/velocity/torque based on its control mode
+                    if (actuator_control_types[i] == 0) {
+                        float temp_pos = current_pos + motor_command[i] * 0.001;
+                        base_command.mutable_actuators(i)->set_position(temp_pos);
+                    }else if (actuator_control_types[i] == 1) {
+                        base_command.mutable_actuators(i)->set_position(current_pos);
+                        base_command.mutable_actuators(i)->set_velocity(motor_command[i]);
+                    } else {
+                        base_command.mutable_actuators(i)->set_position(current_pos);
+                        base_command.mutable_actuators(i)->set_torque_joint(abs(current_torque));
+                    }
+                    
                 }
-                // PID LOOPS ABOVE
+                // See how many joints are at their target, move onto the next waypoint if all are (Can change how many are "all")
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
-
-
-                if(ready_joints == 4){
-                    stage_start = 0;
+                if(ready_joints == 1){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     reachPositions = {0,0,0,0,0,0};
-                    for(int i = 0; i < actuator_count - 1; i++){
-                        pids[i].clear_integral();
-                    }
-                    
-                    // std::this_thread::sleep_for(std::chrono::milliseconds(5000));
                 }
+                // Break out of loop if current target is the last 
                 if(stage == num_of_targets){
-                    stage = 0;
-                   
-                    // break;
+                    // stage = 0;
+                   break;
                 }
 
-                // 
+                // If still going, send next commands to Arm and recieve feedback in the lambda_callback function.
                 try
                 {
                     base_cyclic->Refresh_callback(base_command, lambda_fct_callback, 0);
+                }
+                catch (k_api::KDetailedException& ex)
+                {
+                    // Catch kinova specific errors during RT loop. Output the message and codes
+                    // TODO: See if we need to return for all errors, is there a way to recover and continue mid run?
+                    std::cout << "Error during RT Loop" << std::endl;
+                    printException(ex);
+                    return false;
                 }
                 catch(...)
                 {
                     timeout++;
                 }
-                stage_start++;
                 timer_count++;
                 last = GetTickUs();
             }

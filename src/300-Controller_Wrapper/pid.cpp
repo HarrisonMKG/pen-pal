@@ -17,7 +17,6 @@ Pid_Loop::Pid_Loop(float k_p, float k_i, float k_d)
 float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuator_index)
 {
 	//PID Controller calculations
-	int direction = 1; 
 	float error = setPoint - currentLocation; 
 	// float other_error = currentLocation - setPoint; 
 	if (actuator_index == 4 && ((currentLocation>300&& setPoint >120))){
@@ -43,7 +42,7 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 	
 	prevErr = error;
 
-	return controlSignal*direction;
+	return controlSignal;
 }
 
 
@@ -63,8 +62,3 @@ void Pid_Loop::set_direction(int direction)
 	return;
 }
 
-void Pid_Loop::clear_integral()
-{
-	integral = 0;
-	return;
-}
