@@ -346,7 +346,7 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 	return result;
 }
 
-void KortexRobot::write_csv(const std::string& filename, vector<vector<float>> data) {
+void KortexRobot::generate_performance_file(const std::string& filename, vector<vector<float>> data) {
 	std::vector<std::vector<float>> result;
 
 	std::ofstream file(filename);
