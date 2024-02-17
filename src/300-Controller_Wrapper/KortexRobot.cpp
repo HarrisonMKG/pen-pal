@@ -360,7 +360,7 @@ void KortexRobot::generate_performance_file(const std::string& filename, vector<
   for(int i= 0; i<col_headers.size();i++)
   {
     file<<col_headers[i];
-    if(i=!col_headers.size()-1) file << ",";
+    if(i!=col_headers.size()-1) file << ",";
   }
   file << endl;
 
