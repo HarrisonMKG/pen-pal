@@ -11,9 +11,9 @@
 #include <numeric>
 #include <sstream>
 #include <iomanip>
-#include <stdio.h>
-//#include <graphics.h>
 
+#include <stdio.h>
+#include <csignal>
 
 #include <KDetailedException.h>
 
@@ -107,9 +107,12 @@ public:
 
     void output_arm_limits_and_mode();
 
-	const float SPEED_THRESHOLD = 15.0f;
+    const vector<float> position_tolerance = {1.5, 1.2, 1.2, 1.0, 1.0, 1.0};
+    const vector<float> velocity_threshold = {20.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f};
+    const vector<int> actuator_control_types = {1,1,1,1,1,0};
 
 	void init_pids();
+	void get_gain_values(const std::string& filename);
 
     vector<float> altered_origin;
     vector<float> bais_vector;
