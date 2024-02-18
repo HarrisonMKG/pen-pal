@@ -11,7 +11,7 @@
 #include <numeric>
 #include <sstream>
 #include <iomanip>
-#include "gnuplot-iostream.h"
+#include <stdio.h>
 //#include <graphics.h>
 
 
