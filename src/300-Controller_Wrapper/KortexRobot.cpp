@@ -25,8 +25,37 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 	// init_pids();
 }
 
-void KortexRobot::init_pids()
+void KortexRobot::plot(vector<vector<float>>data)
 {
+	start_plot();
+  for(auto points: data)
+  {
+    KortexRobot::plot_data << points[0] << " " << points[1] << endl;
+    fprintf(gnu_plot, "plot 'realtime_data.txt' with lines\n");
+    fflush(gnu_plot);
+  }
+  
+}
+
+int KortexRobot::start_plot()
+{
+  FILE *gnuplotPipe = popen("gnuplot -persist", "w");
+  KortexRobot::gnu_plot = gnuplotPipe;
+  if (!gnu_plot) {
+    std::cerr << "Error: Gnuplot not found." << std::endl;
+    return 1;
+  }
+
+  // Open a file for writing
+  KortexRobot::plot_data.open("realtime_data.txt");
+  if (!plot_data.is_open()) {
+    std::cerr << "Error: Unable to open data file." << std::endl;
+    return 1;
+  }
+}
+
+void KortexRobot::init_pids()
+
     bool verbose = true;
 	vector<vector<float>> pid_inputs = {{0.13, 0.015, 0.0},//tuned
 	{0.21, 0.28, 0.037}, //tuned
@@ -368,7 +397,6 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
 
 		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
 	}
-    
     if (verbose) {
         cout << "Modified Vector" << endl;
         for(auto point : csv_points)
