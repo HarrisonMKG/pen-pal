@@ -27,7 +27,7 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 
 void KortexRobot::plot(vector<vector<float>>data)
 {
-	//start_plot();
+	start_plot();
   for(auto points: data)
   {
     KortexRobot::plot_data << points[0] << " " << points[1] << endl;
