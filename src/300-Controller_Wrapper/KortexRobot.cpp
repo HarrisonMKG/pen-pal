@@ -379,8 +379,20 @@ void KortexRobot::generate_performance_file(const std::string& filename, vector<
       joint_angle->set_value(angle);
     }
 
-    pose = base->ComputeForwardKinematics(joint_angles);
-    file << pose.x() << ',' << pose.y() << ',' << pose.z() << endl;
+    try
+    {
+      pose = base->ComputeForwardKinematics(joint_angles);
+      file << pose.x() << ',' << pose.y() << ',' << pose.z() << endl;
+    }
+    catch(const Kinova::Api::KDetailedException e)
+    {
+      file << "FK failure for the following joint angles:";
+      for(int i= 0; i<joint_angles.joint_angles_size(); i++)
+      {
+        file << "\tJoint\t" << i << " : "<< joint_angles.joint_angles(i).value();
+      }
+      file << endl; 
+    }
   }
 
 	file.close();
