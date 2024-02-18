@@ -530,6 +530,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
         velocity_limits - max velocity set for each actuator        
         */
         std::vector<int> reachPositions(5, 0);
+        measured_angles.push_back(measure_joints(base_feedback)); // Get reference point for start position
 
         while(timer_count < (time_duration * 1000))
         {
@@ -605,16 +606,8 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                     stage_start = 0;
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
-                    vector<float> current_joint_angles;
-                    current_joint_angles.push_back(GetTickUs());
 
-
-                    for(int i=0; i<actuator_count-1; i++)
-                    {
-                      current_joint_angles.push_back(base_feedback.actuators(i).position());
-                    }
-
-                    measured_angles.push_back(current_joint_angles);
+                    measured_angles.push_back(measure_joints(base_feedback));
                     reachPositions = {0,0,0,0,0,0};
                     for(int i = 0; i < actuator_count - 1; i++){
                         pids[i].clear_integral();
@@ -659,6 +652,19 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
     base->SetServoingMode(servoingMode);
     
   return measured_angles;
+}
+
+vector<float> KortexRobot::measure_joints(k_api::BaseCyclic::Feedback base_feedback)
+{
+  vector<float> current_joint_angles;
+  current_joint_angles.push_back(GetTickUs());
+
+  for(int i=0; i<actuator_count; i++)
+  {
+    current_joint_angles.push_back(base_feedback.actuators(i).position());
+  }
+
+  return current_joint_angles;
 }
 
 

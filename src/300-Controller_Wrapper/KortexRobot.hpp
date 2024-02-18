@@ -125,6 +125,7 @@ public:
 
 	const vector<float> surface_cords = {0.455,0,0.115};
 	void find_paper();
+  vector<float> measure_joints(k_api::BaseCyclic::Feedback base_feedback);
 
 
 protected:
