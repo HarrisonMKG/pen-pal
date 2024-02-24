@@ -107,10 +107,11 @@ public:
 
     void output_arm_limits_and_mode();
 
-    const float max_diff_velocity = 5.0f;
-    const vector<float> actuator_pos_tolerance = {0.05, 0.05, 0.05, 0.05, 0.05, 0.05};
-    const vector<int> actuator_control_types = {1,1,1,0,1,0};
-	const vector<float> unit_limits = {100.0, 50.0, 30.0, 15.0, 30, 25.0}; 
+    const vector<float> actuator_pos_tolerance = {0.05, 0.035, 0.035, 0.05, 0.05, 0.05};
+    const vector<int> actuator_control_types = {0,2,0,0,0,0};
+	const vector<float> command_max = {100.0, -2.0, 30.0, 15.0, 30, 25.0}; 
+	const vector<float> command_min = {-100.0, -20.0, -30.0, -15.0, -30, -25.0}; 
+	const vector<float> step_change_limit = {20.0, 30, 50, 20.0, 20.0, 20.0}; 
     std::vector<float> motor_command= {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f}; //Vector of current_velocities/torques to use in calculation for next command
 
 

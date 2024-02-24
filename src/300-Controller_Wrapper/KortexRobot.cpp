@@ -55,7 +55,7 @@ int KortexRobot::start_plot()
 }
 
 void KortexRobot::init_pids()
-
+{
     bool verbose = true;
 	vector<vector<float>> pid_inputs = {{0.13, 0.015, 0.0},//tuned
 	{0.21, 0.28, 0.037}, //tuned
@@ -466,7 +466,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     //                      ALSO: Need to change the ready positions check to move onto new stages and which joints are skipped in RT loop
     target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
     target_joint_angles_IK = convert_points_to_angles(target_waypoints);
-    // target_waypoints = {{350,15,310,355,110,77}, {50,40,275,0,250,70}};
+    // target_waypoints = {{350,15,320,355,110,77}, {350,15,270,355,110,77}};
     // target_joint_angles_IK = target_waypoints;   
 
     system("pause");
@@ -491,6 +491,8 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         for(int i = 0; i < actuator_count; i++)
         {
             base_command.add_actuators()->set_position(base_feedback.actuators(i).position());
+            // base_command.add_actuators()->set_torque_joint(base_feedback.actuators(i).torque());
+            // base_command.add_actuators()->set_velocity(base_feedback.actuators(i).velocity());
         }
         base_feedback = base_cyclic->Refresh(base_command);
 
@@ -514,13 +516,17 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
                     // Skip specific Actuators during testing 
-                    if (i==3 || i==5){
+                    if (i!=1){
                         continue;
                     } 
 
 					float current_pos = base_feedback.actuators(i).position();
 					float current_velocity = base_feedback.actuators(i).velocity();
 					float current_torque = base_feedback.actuators(i).torque();
+
+                    if (actuator_control_types[i] == 2) {
+                        current_velocity = current_torque;
+                    }
                     float target_pos = target_joint_angles_IK[stage][i];
                     // Only use position error here aswell to see if we can signal joint reached its target
                     float position_error = target_pos - current_pos;
@@ -535,13 +541,30 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                     // Get control signal from calculate PID
 					float control_sig = pids[i].calculate_pid(current_pos, target_pos, i);
                     cout << "[" << stage+1 << ", " << i << "]\tCurr vs Target Pos: (";
+                    
                     cout << std::fixed << std::setprecision(3) << current_pos << ", " << std::fixed << std::setprecision(3) << target_pos << ")";
                     cout << "\tCurrent vs New Vel: (" << std::fixed << std::setprecision(3) << current_velocity << ", " << std::fixed << std::setprecision(3) << control_sig <<")";
                     // Limit the max absolute value of the new velocity/command being sent
-                    if (abs(control_sig) > unit_limits[i]) {
-                        control_sig = (control_sig / abs(control_sig)) * unit_limits[i]; 
-                        cout << "\t CAP SIG: " << control_sig;
+                    if (control_sig > command_max[i]) {
+                        control_sig = command_max[i]; 
+                        cout << "\t MAXXED SIG: " << control_sig;
+                    } else if (control_sig < command_min[i]) {
+                        control_sig = command_min[i]; 
+                        cout << "\t MIN SIG: " << control_sig;
+
                     }
+                    if (abs(motor_command[i] - control_sig) > step_change_limit[i]) {
+                        // Reduce control signal to be atmost 
+                        if (motor_command[i] < control_sig) {
+                            control_sig = motor_command[i] + step_change_limit[i];
+                        } else {
+                            control_sig = motor_command[i] - step_change_limit[i];
+                        }
+                        cout << "\t CAP SIG: " << control_sig;
+
+                    }
+                    
+                    
 
                      // Mark if joint is at destination
                     if (std::abs(position_error) > actuator_pos_tolerance[i]) {
@@ -563,13 +586,13 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                         base_command.mutable_actuators(i)->set_velocity(motor_command[i]);
                     } else {
                         base_command.mutable_actuators(i)->set_position(current_pos);
-                        base_command.mutable_actuators(i)->set_torque_joint(abs(current_torque));
+                        base_command.mutable_actuators(i)->set_torque_joint(motor_command[i]);
                     }
                     
                 }
                 // See how many joints are at their target, move onto the next waypoint if all are (Can change how many are "all")
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
-                if(ready_joints == 4){
+                if(ready_joints == 1){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     reachPositions = {0,0,0,0,0,0};
@@ -577,7 +600,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 // Break out of loop if current target is the last 
                 if(stage == num_of_targets){
                     stage = 0;
-                //    break;
+                    break;
                 }
 
                 // If still going, send next commands to Arm and recieve feedback in the lambda_callback function.
