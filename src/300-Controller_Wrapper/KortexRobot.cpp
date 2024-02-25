@@ -390,12 +390,14 @@ void KortexRobot::generate_performance_file(const std::string& filename, vector<
   vector<string> col_headers = {"seconds","x","y","z"};
 
   //populate headers
+  /*
   for(int i= 0; i<col_headers.size();i++)
   {
     file<<col_headers[i];
     if(i!=col_headers.size()-1) file << ",";
   }
   file << endl;
+  */
 
   k_api::Base::Pose pose;
 
@@ -566,7 +568,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
                     // Skip specific Actuators during testing 
-                    if (i==3 || i==5){
+                    if (i==5){
                         continue;
                     } 
 
@@ -621,7 +623,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                 }
                 // See how many joints are at their target, move onto the next waypoint if all are (Can change how many are "all")
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
-                if(ready_joints == 4){
+                if(ready_joints == 5){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
 
@@ -631,7 +633,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                 // Break out of loop if current target is the last 
                 if(stage == num_of_targets){
                     stage = 0;
-                //    break;
+                    break;
                 }
 
                 // If still going, send next commands to Arm and recieve feedback in the lambda_callback function.

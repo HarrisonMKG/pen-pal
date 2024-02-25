@@ -6,7 +6,6 @@
 #include <iostream>
 #include <string>
 #include <vector>
-#include <filesystem>
 #include <cmath>
 #include <fstream>
 #include <numeric>
@@ -110,7 +109,7 @@ public:
 
     const float max_diff_velocity = 5.0f;
     const vector<float> actuator_pos_tolerance = {0.05, 0.05, 0.05, 0.05, 0.05, 0.05};
-    const vector<int> actuator_control_types = {1,1,1,0,1,0};
+    const vector<int> actuator_control_types = {1,1,1,1,1,0};
 	const vector<float> unit_limits = {100.0, 50.0, 30.0, 15.0, 30, 25.0}; 
     std::vector<float> motor_command= {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f}; //Vector of current_velocities/torques to use in calculation for next command
 
@@ -133,7 +132,7 @@ public:
 
   ofstream plot_data;
 	FILE *gnu_plot;
-  string measured_waypoints;
+  string measured_waypoints = "measured_waypoints.csv";
 
 protected:
 	//data
