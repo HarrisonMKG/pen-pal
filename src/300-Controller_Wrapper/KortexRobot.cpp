@@ -215,7 +215,7 @@ void KortexRobot::writing_mode()
 
 	auto current_pose = base->GetMeasuredCartesianPose();
 	vector<vector<float>> current_cartiesian = {{current_pose.x(),current_pose.y(),current_pose.z()}}; 
-	KortexRobot::move_cartesian(current_cartiesian,kTheta_x,kTheta_y,kTheta_z);
+	KortexRobot::move_cartesian(current_cartiesian,false,kTheta_x,kTheta_y,kTheta_z);
 }
 
 
@@ -423,7 +423,7 @@ void KortexRobot::calculate_bias(std::vector<float> first_waypoint) {
     cout << "BIAS: X: " << bais_vector[0] << "\tY: " <<bais_vector[1] << "\tZ: " << bais_vector[2] << endl;
 }
 
-bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition, float kTheta_x, 
+bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition,bool repeat, float kTheta_x, 
 		float kTheta_y, float kTheta_z)
 {
     // Define the callback function used in Refresh_callback
@@ -478,7 +478,6 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     int64_t last = 0;
 
     int timeout = 0;
-
     //mylogger.Log("Initializing the arm for velocity low-level control example", INFO);
     try
     {   
@@ -491,8 +490,6 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         for(int i = 0; i < actuator_count; i++)
         {
             base_command.add_actuators()->set_position(base_feedback.actuators(i).position());
-            // base_command.add_actuators()->set_torque_joint(base_feedback.actuators(i).torque());
-            // base_command.add_actuators()->set_velocity(base_feedback.actuators(i).velocity());
         }
         base_feedback = base_cyclic->Refresh(base_command);
 
@@ -504,7 +501,6 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         int stage = 0;
         int num_of_targets = target_waypoints.size();
         std::vector<int> reachPositions(5, 0);
-
         // Real-time loop
         while(timer_count < (time_duration * 1000))
         {
@@ -516,7 +512,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
                     // Skip specific Actuators during testing 
-                    if (i!=1){
+                    if (i==5){// || i==2){
                         continue;
                     } 
 
@@ -540,19 +536,20 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 
                     // Get control signal from calculate PID
 					float control_sig = pids[i].calculate_pid(current_pos, target_pos, i);
-                    cout << "[" << stage+1 << ", " << i << "]\tCurr vs Target Pos: (";
-                    
-                    cout << std::fixed << std::setprecision(3) << current_pos << ", " << std::fixed << std::setprecision(3) << target_pos << ")";
-                    cout << "\tCurrent vs New Vel: (" << std::fixed << std::setprecision(3) << current_velocity << ", " << std::fixed << std::setprecision(3) << control_sig <<")";
+                    if (i == 2) {
+                        cout << "[" << stage+1 << ", " << i << "]\tCurr vs Target Pos: (";
+                        cout << std::fixed << std::setprecision(3) << current_pos << ", " << std::fixed << std::setprecision(3) << target_pos << ")";
+                        cout << "\tCurrent vs New Vel: (" << std::fixed << std::setprecision(3) << current_velocity << ", " << std::fixed << std::setprecision(3) << control_sig <<")";
+                    }
                     // Limit the max absolute value of the new velocity/command being sent
                     if (control_sig > command_max[i]) {
-                        control_sig = command_max[i]; 
+                        control_sig = command_max[i] - 5; 
                         cout << "\t MAXXED SIG: " << control_sig;
                     } else if (control_sig < command_min[i]) {
                         control_sig = command_min[i]; 
                         cout << "\t MIN SIG: " << control_sig;
-
                     }
+
                     if (abs(motor_command[i] - control_sig) > step_change_limit[i]) {
                         // Reduce control signal to be atmost 
                         if (motor_command[i] < control_sig) {
@@ -561,9 +558,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                             control_sig = motor_command[i] - step_change_limit[i];
                         }
                         cout << "\t CAP SIG: " << control_sig;
-
                     }
-                    
                     
 
                      // Mark if joint is at destination
@@ -571,11 +566,17 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                         // Update command based on control signal (And control mode of actuator)
                         reachPositions[i] = 0;
                     } else {                       
-                        std::cout << "\t ARRIVED";
+
+                        if (i == 2) {
+                            std::cout << "\t ARRIVED";
+                        }
                         reachPositions[i] = 1;
                     }
+                    if (i == 2) {
                     cout << endl;
+                    }
                     motor_command[i] = control_sig;
+              
 
                     // Update the joints position/velocity/torque based on its control mode
                     if (actuator_control_types[i] == 0) {
@@ -592,7 +593,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 }
                 // See how many joints are at their target, move onto the next waypoint if all are (Can change how many are "all")
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
-                if(ready_joints == 1){
+                if(ready_joints == 5){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     reachPositions = {0,0,0,0,0,0};
@@ -600,7 +601,9 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 // Break out of loop if current target is the last 
                 if(stage == num_of_targets){
                     stage = 0;
-                    break;
+                    if (repeat == 0){
+                        break;
+                    }
                 }
 
                 // If still going, send next commands to Arm and recieve feedback in the lambda_callback function.

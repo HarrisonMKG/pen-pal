@@ -91,7 +91,7 @@ public:
     ~KortexRobot();
     void set_actuator_control_mode(int mode_control, int actuator_indx = -1);
 	void writing_mode();
-	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition,
+	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition, bool repeat = false,
 					float kTheta_x = 180.0f, float kTheta_y = 0.0f, float kTheta_z = 90.0f);
 
 	std::vector<std::vector<float>> convert_points_to_angles(std::vector<vector<float>> target_points);
@@ -108,11 +108,11 @@ public:
     void output_arm_limits_and_mode();
 
     const vector<float> actuator_pos_tolerance = {0.05, 0.035, 0.035, 0.05, 0.05, 0.05};
-    const vector<int> actuator_control_types = {0,2,0,0,0,0};
-	const vector<float> command_max = {100.0, -2.0, 30.0, 15.0, 30, 25.0}; 
+    const vector<int> actuator_control_types = {1,2,2,1,1,0};
+	const vector<float> command_max = {100.0, 10, 30.0, 15.0, 30, 25.0}; 
 	const vector<float> command_min = {-100.0, -20.0, -30.0, -15.0, -30, -25.0}; 
-	const vector<float> step_change_limit = {20.0, 30, 50, 20.0, 20.0, 20.0}; 
-    std::vector<float> motor_command= {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f}; //Vector of current_velocities/torques to use in calculation for next command
+	const vector<float> step_change_limit = {20.0, 30, 7, 20.0, 20.0, 20.0}; 
+    std::vector<float> motor_command= {10.0f, 10.0f, 3.0f, 10.0f, 10.0f, 10.0f}; //Vector of current_velocities/torques to use in calculation for next command
 
 
 	void init_pids();
