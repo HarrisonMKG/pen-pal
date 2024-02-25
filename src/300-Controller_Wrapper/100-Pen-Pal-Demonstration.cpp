@@ -33,7 +33,8 @@ int main(int argc, char **argv)
     // pen_pal.mylogger.Log("Read CSV complete");
     // pen_pal.mylogger.Log("Executing Move cartesian.", INFO);
 
-    //pen_pal.move_cartesian(matrix);
+    vector<vector<float>> performance_data = pen_pal.move_cartesian(matrix);
+    pen_pal.generate_performance_file("measured_waypoints.csv",performance_data);
 
     return 0;
 }

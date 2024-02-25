@@ -379,6 +379,54 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 	return result;
 }
 
+void KortexRobot::generate_performance_file(const std::string& filename, vector<vector<float>> data) {
+	std::vector<std::vector<float>> result;
+
+	std::ofstream file(filename);
+  vector<string> col_headers = {"seconds","x","y","z"};
+
+  //populate headers
+  for(int i= 0; i<col_headers.size();i++)
+  {
+    file<<col_headers[i];
+    if(i!=col_headers.size()-1) file << ",";
+  }
+  file << endl;
+
+  k_api::Base::Pose pose;
+
+  //populate data
+  for(auto angles: data)
+  {
+    file << angles[0] << ','; // Seconds
+    angles.erase(angles.begin());
+    Kinova::Api::Base::JointAngles joint_angles;
+
+    for(auto angle: angles)
+    {
+      Kinova::Api::Base::JointAngle* joint_angle = joint_angles.add_joint_angles();
+      joint_angle->set_value(angle);
+    }
+
+    try
+    {
+      pose = base->ComputeForwardKinematics(joint_angles);
+      file << pose.x() << ',' << pose.y() << ',' << pose.z() << endl;
+    }
+    catch(const Kinova::Api::KDetailedException e)
+    {
+      file << "FK failure for the following joint angles:";
+      for(int i= 0; i<joint_angles.joint_angles_size(); i++)
+      {
+        file << "\tJoint\t" << i << " : "<< joint_angles.joint_angles(i).value();
+      }
+      file << endl; 
+    }
+  }
+
+	file.close();
+}
+
 std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, float kTheta_x,
                                                                     float kTheta_y, float kTheta_z) {
     bool verbose = false; 
@@ -423,7 +471,7 @@ void KortexRobot::calculate_bias(std::vector<float> first_waypoint) {
     cout << "BIAS: X: " << bais_vector[0] << "\tY: " <<bais_vector[1] << "\tZ: " << bais_vector[2] << endl;
 }
 
-bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition, float kTheta_x, 
+vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition, float kTheta_x, 
 		float kTheta_y, float kTheta_z)
 {
     // Define the callback function used in Refresh_callback
@@ -471,13 +519,12 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 
     system("pause");
 
-    bool return_status = true;
-
     int timer_count = 0;
     int64_t now = 0;
     int64_t last = 0;
 
     int timeout = 0;
+    vector<vector<float>> measured_angles;
 
     //mylogger.Log("Initializing the arm for velocity low-level control example", INFO);
     try
@@ -502,6 +549,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
         int stage = 0;
         int num_of_targets = target_waypoints.size();
         std::vector<int> reachPositions(5, 0);
+        measured_angles.push_back(measure_joints(base_feedback)); // Get reference point for start position
 
         // Real-time loop
         while(timer_count < (time_duration * 1000))
@@ -572,6 +620,8 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 if(ready_joints == 4){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
+
+                    measured_angles.push_back(measure_joints(base_feedback));
                     reachPositions = {0,0,0,0,0,0};
                 }
                 // Break out of loop if current target is the last 
@@ -605,12 +655,10 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     catch (k_api::KDetailedException& ex)
     {
         //mylogger.Log("Kortex error: " + std::string(ex.what()), ERR);
-        return_status = false;
     }
     catch (std::runtime_error& ex2)
     {
         //mylogger.Log("Runtime error: " + std::string(ex2.what()), ERR);
-        return_status = false;
     }
  
     set_actuator_control_mode(0);
@@ -618,8 +666,21 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     // Set back the servoing mode to Single Level Servoing
     servoingMode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
     base->SetServoingMode(servoingMode);
+    
+  return measured_angles;
+}
 
-    return return_status;
+vector<float> KortexRobot::measure_joints(k_api::BaseCyclic::Feedback base_feedback)
+{
+  vector<float> current_joint_angles;
+  current_joint_angles.push_back(GetTickUs());
+
+  for(int i=0; i<actuator_count; i++)
+  {
+    current_joint_angles.push_back(base_feedback.actuators(i).position());
+  }
+
+  return current_joint_angles;
 }
 
 
