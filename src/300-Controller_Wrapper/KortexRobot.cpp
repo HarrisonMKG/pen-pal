@@ -28,13 +28,16 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 void KortexRobot::plot(vector<vector<float>>data)
 {
 	start_plot();
+
   for(auto points: data)
   {
     KortexRobot::plot_data << points[0] << " " << points[1] << endl;
-    fprintf(gnu_plot, "plot 'realtime_data.txt' with lines\n");
-    fflush(gnu_plot);
   }
-  
+  string cmd = "plot 'realtime_data.txt' with lines, \\\n" \ 
+  "'" + measured_waypoints + "' with line \n";
+  fprintf(gnu_plot, cmd.c_str());
+  fflush(gnu_plot);
+  //std::remove("realtime_data.txt");
 }
 
 int KortexRobot::start_plot()

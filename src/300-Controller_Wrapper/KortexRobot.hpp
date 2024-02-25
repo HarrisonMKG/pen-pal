@@ -6,6 +6,7 @@
 #include <iostream>
 #include <string>
 #include <vector>
+#include <filesystem>
 #include <cmath>
 #include <fstream>
 #include <numeric>
@@ -132,6 +133,7 @@ public:
 
   ofstream plot_data;
 	FILE *gnu_plot;
+  string measured_waypoints;
 
 protected:
 	//data

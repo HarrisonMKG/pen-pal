@@ -23,6 +23,9 @@ int main(int argc, char **argv)
   
     vector<vector<float>> matrix = pen_pal.read_csv(coordinates_file);
 
+    vector<vector<float>> performance_data = pen_pal.move_cartesian(matrix);
+    pen_pal.generate_performance_file("measured_waypoints.csv",performance_data);
+
     vector<vector<float>> matrix_subset(matrix);
     for(auto &points : matrix_subset)
     {
@@ -33,8 +36,6 @@ int main(int argc, char **argv)
     // pen_pal.mylogger.Log("Read CSV complete");
     // pen_pal.mylogger.Log("Executing Move cartesian.", INFO);
 
-    vector<vector<float>> performance_data = pen_pal.move_cartesian(matrix);
-    pen_pal.generate_performance_file("measured_waypoints.csv",performance_data);
 
     return 0;
 }
