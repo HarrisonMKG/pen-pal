@@ -22,6 +22,14 @@ int main(int argc, char **argv)
     // pen_pal.mylogger.Log("Executing Read Csv using filename: " + coordinates_file, INFO);
   
     vector<vector<float>> matrix = pen_pal.read_csv(coordinates_file);
+
+    vector<vector<float>> matrix_subset(matrix);
+    for(auto &points : matrix_subset)
+    {
+      points = {points.begin() + 1, points.end() - 1};
+    }
+
+    pen_pal.plot(matrix_subset);
     // pen_pal.mylogger.Log("Read CSV complete");
     // pen_pal.mylogger.Log("Executing Move cartesian.", INFO);
 
