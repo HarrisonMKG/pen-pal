@@ -536,11 +536,11 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
 
                     // Get control signal from calculate PID
 					float control_sig = pids[i].calculate_pid(current_pos, target_pos, i);
-                    if (i == 2) {
+                    // if (i == 2) {
                         cout << "[" << stage+1 << ", " << i << "]\tCurr vs Target Pos: (";
                         cout << std::fixed << std::setprecision(3) << current_pos << ", " << std::fixed << std::setprecision(3) << target_pos << ")";
                         cout << "\tCurrent vs New Vel: (" << std::fixed << std::setprecision(3) << current_velocity << ", " << std::fixed << std::setprecision(3) << control_sig <<")";
-                    }
+                    // }
                     // Limit the max absolute value of the new velocity/command being sent
                     if (control_sig > command_max[i]) {
                         control_sig = command_max[i] - 5; 
@@ -567,14 +567,14 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                         reachPositions[i] = 0;
                     } else {                       
 
-                        if (i == 2) {
+                        // if (i == 2) {
                             std::cout << "\t ARRIVED";
-                        }
+                        // }
                         reachPositions[i] = 1;
                     }
-                    if (i == 2) {
+                    // if (i == 2) {
                     cout << endl;
-                    }
+                    // }
                     motor_command[i] = control_sig;
               
 
