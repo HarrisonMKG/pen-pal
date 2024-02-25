@@ -55,6 +55,7 @@ int KortexRobot::start_plot()
 }
 
 void KortexRobot::init_pids()
+{
 
     bool verbose = true;
 	vector<vector<float>> pid_inputs = {{0.13, 0.015, 0.0},//tuned
@@ -641,7 +642,6 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                     // TODO: See if we need to return for all errors, is there a way to recover and continue mid run?
                     std::cout << "Error during RT Loop" << std::endl;
                     printException(ex);
-                    return false;
                 }
                 catch(...)
                 {
