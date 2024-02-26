@@ -326,9 +326,12 @@ void KortexRobot::set_actuator_control_mode(int mode_control, int actuator_indx)
     }else if (mode_control == 1) {
         std::cout << "VELOCITY" << std::endl;
         control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::VELOCITY);
-    }else {
+    }else if (mode_control == 2) {
         std::cout << "TORQUE" << std::endl;
         control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::TORQUE);
+    } else {
+        std::cout << "TORQUE W HIGH VELOCITY" << std::endl;
+        control_mode_message.set_control_mode(k_api::ActuatorConfig::ControlMode::TORQUE_HIGH_VELOCITY);
     }
 
     if (actuator_indx == -1) {
@@ -466,7 +469,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
     //                      ALSO: Need to change the ready positions check to move onto new stages and which joints are skipped in RT loop
     target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
     target_joint_angles_IK = convert_points_to_angles(target_waypoints);
-    // target_waypoints = {{350,15,320,355,110,77}, {350,15,270,355,110,77}};
+    // target_waypoints = {{350,30,320,355,110,77}, {350,15,270,355,110,77}};
     // target_joint_angles_IK = target_waypoints;   
 
     system("pause");
@@ -550,15 +553,15 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                         cout << "\t MIN SIG: " << control_sig;
                     }
 
-                    if (abs(motor_command[i] - control_sig) > step_change_limit[i]) {
-                        // Reduce control signal to be atmost 
-                        if (motor_command[i] < control_sig) {
-                            control_sig = motor_command[i] + step_change_limit[i];
-                        } else {
-                            control_sig = motor_command[i] - step_change_limit[i];
-                        }
-                        cout << "\t CAP SIG: " << control_sig;
-                    }
+                    // if (abs(motor_command[i] - control_sig) > step_change_limit[i]) {
+                    //     // Reduce control signal to be atmost 
+                    //     if (motor_command[i] < control_sig) {
+                    //         control_sig = motor_command[i] + step_change_limit[i];
+                    //     } else {
+                    //         control_sig = motor_command[i] - step_change_limit[i];
+                    //     }
+                    //     cout << "\t CAP SIG: " << control_sig;
+                    // }
                     
 
                      // Mark if joint is at destination
