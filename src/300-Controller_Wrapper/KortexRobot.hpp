@@ -127,12 +127,12 @@ public:
 	const vector<float> surface_cords = {0.455,0,0.115};
 	void find_paper();
   vector<float> measure_joints(k_api::BaseCyclic::Feedback base_feedback);
-	void plot(vector<vector<float>>data);
 	int start_plot();
+  void plot(vector<vector<float>> expected_data,vector<vector<float>> measured_data);
+  int create_plot_file(string file_name, vector<vector<float>> data);
 
   ofstream plot_data;
 	FILE *gnu_plot;
-  string measured_waypoints = "measured_waypoints.csv";
 
 protected:
 	//data

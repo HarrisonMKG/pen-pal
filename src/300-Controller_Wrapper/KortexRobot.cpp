@@ -25,18 +25,22 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 	// init_pids();
 }
 
-void KortexRobot::plot(vector<vector<float>>data)
+void KortexRobot::plot(vector<vector<float>> expected_data,vector<vector<float>> measured_data)
 {
 	start_plot();
 
-  for(auto points: data)
-  {
-    KortexRobot::plot_data << points[0] << " " << points[1] << endl;
-  }
-  string cmd = "plot 'realtime_data.txt' with lines, \\\n" \ 
-  "'" + measured_waypoints + "' with line \n";
+  string expected_file = "tmp_expected.csv";
+  string measured_file = "tmp_measured.csv";
+  create_plot_file(expected_file,expected_data);
+  create_plot_file(measured_file,measured_data);
+
+  string cmd = "plot '" + expected_file + "' with lines, \\\n" \ 
+  "'" + measured_file + "' with line \n";
   fprintf(gnu_plot, cmd.c_str());
   fflush(gnu_plot);
+
+  //Clean up
+  //std::remove(expected_file)
   //std::remove("realtime_data.txt");
 }
 
@@ -49,12 +53,29 @@ int KortexRobot::start_plot()
     return 1;
   }
 
+}
+
+int KortexRobot::create_plot_file(string file_name, vector<vector<float>> data)
+{
   // Open a file for writing
-  KortexRobot::plot_data.open("realtime_data.txt");
-  if (!plot_data.is_open()) {
+  KortexRobot::plot_data.open(file_name);
+  if (!plot_data.is_open()) 
+  {
     std::cerr << "Error: Unable to open data file." << std::endl;
     return 1;
   }
+  
+    vector<vector<float>> data_subset(data);
+    for(auto &points : data_subset)
+    {
+      points = {points.begin() + 1, points.end() - 1};
+    }
+
+  for(auto points: data_subset)
+  {
+    KortexRobot::plot_data << points[0] << "," << points[1] << endl;
+  }
+  KortexRobot::plot_data.close();
 }
 
 void KortexRobot::init_pids()
