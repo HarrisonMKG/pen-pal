@@ -515,7 +515,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
                     // Skip specific Actuators during testing 
-                    if (i==5){// || i==2){
+                    if (i!=2){// || i==2){
                         continue;
                     } 
 
@@ -546,22 +546,12 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                     // }
                     // Limit the max absolute value of the new velocity/command being sent
                     if (control_sig > command_max[i]) {
-                        control_sig = command_max[i] - 5; 
+                        control_sig = command_max[i]; 
                         cout << "\t MAXXED SIG: " << control_sig;
                     } else if (control_sig < command_min[i]) {
                         control_sig = command_min[i]; 
                         cout << "\t MIN SIG: " << control_sig;
                     }
-
-                    // if (abs(motor_command[i] - control_sig) > step_change_limit[i]) {
-                    //     // Reduce control signal to be atmost 
-                    //     if (motor_command[i] < control_sig) {
-                    //         control_sig = motor_command[i] + step_change_limit[i];
-                    //     } else {
-                    //         control_sig = motor_command[i] - step_change_limit[i];
-                    //     }
-                    //     cout << "\t CAP SIG: " << control_sig;
-                    // }
                     
 
                      // Mark if joint is at destination
@@ -596,7 +586,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 }
                 // See how many joints are at their target, move onto the next waypoint if all are (Can change how many are "all")
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
-                if(ready_joints == 5){
+                if(ready_joints == 1){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     reachPositions = {0,0,0,0,0,0};

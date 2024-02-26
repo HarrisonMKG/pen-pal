@@ -108,7 +108,7 @@ public:
     void output_arm_limits_and_mode();
 
     const vector<float> actuator_pos_tolerance = {0.05, 0.04, 0.04, 0.05, 0.05, 0.05};
-    const vector<int> actuator_control_types = {1,1,2,1,1,0};
+    const vector<int> actuator_control_types = {0,0,1,0,0,0};
 	const vector<float> command_max = {100.0, 30, 30.0, 15.0, 30, 25.0}; 
 	const vector<float> command_min = {-100.0, -30.0, -30.0, -15.0, -30, -25.0}; 
 	const vector<float> step_change_limit = {20.0, 30, 30, 20.0, 20.0, 20.0}; 
