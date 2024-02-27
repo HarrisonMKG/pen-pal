@@ -91,7 +91,7 @@ public:
     ~KortexRobot();
     void set_actuator_control_mode(int mode_control, int actuator_indx = -1);
 	void writing_mode();
-	bool move_cartesian(std::vector<std::vector<float>> waypointsDefinition, bool repeat = false,
+	vector<vector<float>> move_cartesian(std::vector<std::vector<float>> waypointsDefinition, bool repeat = false
 					float kTheta_x = 180.0f, float kTheta_y = 0.0f, float kTheta_z = 90.0f);
 
 	std::vector<std::vector<float>> convert_points_to_angles(std::vector<vector<float>> target_points);
@@ -123,9 +123,11 @@ public:
 
     int actuator_count;
     vector<Pid_Loop> pids;
+  void generate_performance_file(const std::string& filename, vector<vector<float>>data);
 
 	const vector<float> surface_cords = {0.455,0,0.115};
 	void find_paper();
+  vector<float> measure_joints(k_api::BaseCyclic::Feedback base_feedback);
 	void plot(vector<vector<float>>data);
 	int start_plot();
 
