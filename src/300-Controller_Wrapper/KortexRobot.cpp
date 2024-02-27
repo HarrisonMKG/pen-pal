@@ -32,7 +32,7 @@ void KortexRobot::plot(vector<vector<float>> expected_data,vector<vector<float>>
   string expected_file = "tmp_expected.csv";
   string measured_file = "tmp_measured.csv";
   create_plot_file(expected_file,expected_data);
-  create_plot_file(measured_file,measured_data);
+  //create_plot_file(measured_file,measured_data);
 
   string cmd = "plot '" + expected_file + "' with lines, \\\n" \ 
   "'" + measured_file + "' with line \n";
@@ -405,7 +405,7 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 }
 
 vector<vector<float>> KortexRobot::generate_performance_file(const std::string& filename, vector<vector<float>> data) {
-	std::vector<std::vector<float>> waypoints;
+	vector<vector<float>> waypoints;
 
 	std::ofstream file(filename);
   vector<string> col_headers = {"seconds","x","y","z"};
@@ -428,7 +428,6 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
     file << angles[0] << ','; // Seconds
     angles.erase(angles.begin());
     Kinova::Api::Base::JointAngles joint_angles;
-    vector<vector<float>> waypoints;
 
     for(auto angle: angles)
     {
