@@ -1,0 +1,3 @@
+- line_test_X_up_down.csv -> Position the arm extended out infront. Will draw a line moving towards the base then back out to the starting position
+- line_test_Y_left_right.csv -> Position arm mid-way extended, slightly to the right. Moves arm left then right
+- line_zig_zag.csy -> Position arm forward like for line_test_X_up_down... Moves arm towards base then left
