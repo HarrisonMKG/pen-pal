@@ -515,7 +515,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
                     // Skip specific Actuators during testing 
-                    if (i!=2){// || i==2){
+                    if (i==5){// || i==2){
                         continue;
                     } 
 
@@ -586,7 +586,7 @@ bool KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefini
                 }
                 // See how many joints are at their target, move onto the next waypoint if all are (Can change how many are "all")
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
-                if(ready_joints == 1){
+                if(ready_joints == 5){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
                     reachPositions = {0,0,0,0,0,0};
