@@ -21,10 +21,10 @@ int main(int argc, char **argv)
     // pen_pal.mylogger.Log("Executing Read Csv using filename: " + coordinates_file, INFO);
   
     vector<vector<float>> expected_waypoints = pen_pal.read_csv(input_coordinates_file);
-    vector<vector<float>> measured_waypoints = pen_pal.move_cartesian(expected_waypoints);
+    vector<vector<float>> measured_joint_angles = pen_pal.move_cartesian(expected_waypoints);
 
+    vector<vector<float>> measured_waypoints = pen_pal.generate_performance_file("measured_waypoints.csv",measured_joint_angles);
     pen_pal.plot(expected_waypoints,measured_waypoints);
-    pen_pal.generate_performance_file("measured_waypoints.csv",measured_waypoints);
 
     // pen_pal.mylogger.Log("Read CSV complete");
     // pen_pal.mylogger.Log("Executing Move cartesian.", INFO);

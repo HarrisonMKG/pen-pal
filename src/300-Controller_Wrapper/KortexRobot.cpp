@@ -404,8 +404,8 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 	return result;
 }
 
-void KortexRobot::generate_performance_file(const std::string& filename, vector<vector<float>> data) {
-	std::vector<std::vector<float>> result;
+vector<vector<float>> KortexRobot::generate_performance_file(const std::string& filename, vector<vector<float>> data) {
+	std::vector<std::vector<float>> waypoints;
 
 	std::ofstream file(filename);
   vector<string> col_headers = {"seconds","x","y","z"};
@@ -428,6 +428,7 @@ void KortexRobot::generate_performance_file(const std::string& filename, vector<
     file << angles[0] << ','; // Seconds
     angles.erase(angles.begin());
     Kinova::Api::Base::JointAngles joint_angles;
+    vector<vector<float>> waypoints;
 
     for(auto angle: angles)
     {
@@ -437,6 +438,7 @@ void KortexRobot::generate_performance_file(const std::string& filename, vector<
 
     try
     {
+      waypoints.push_back({angles[0],pose.x(),pose.y(),pose.z()});
       pose = base->ComputeForwardKinematics(joint_angles);
       file << pose.x() << ',' << pose.y() << ',' << pose.z() << endl;
     }
@@ -452,6 +454,7 @@ void KortexRobot::generate_performance_file(const std::string& filename, vector<
   }
 
 	file.close();
+  return waypoints;
 }
 
 std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, float kTheta_x,
