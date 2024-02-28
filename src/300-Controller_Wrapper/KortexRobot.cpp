@@ -351,9 +351,11 @@ void KortexRobot::set_actuator_control_mode(int mode_control, int actuator_indx)
 
 std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filename) {
 	std::vector<std::vector<float>> result;
-
+    
 	std::ifstream file(filename);
-	if (!file.is_open()) {
+	
+    int skipper = 0;
+    if (!file.is_open()) {
 		std::cerr << "Error opening file: " << filename << std::endl;
 		return result;
 	}
@@ -373,8 +375,10 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 				// Handle the error or skip the invalid value
 			}
 		}
-
-		result.push_back(row);
+        if (fmod(skipper,7)==0){
+            result.push_back(row);
+        }
+		skipper++;
 	}
 
 	file.close();
@@ -474,6 +478,7 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         }    
         cout << endl;
     }
+    cout<<csv_points.size()<<endl;
     return csv_points;
 }
 
@@ -564,7 +569,8 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
         int num_of_targets = target_waypoints.size();
         std::vector<int> reachPositions(5, 0);
         measured_angles.push_back(measure_joints(base_feedback)); // Get reference point for start position
-
+        int start_time = GetTickUs();
+        int end_time;
         // Real-time loop
         while(timer_count < (time_duration * 1000))
         {
@@ -658,6 +664,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                 if(stage == num_of_targets){
                     stage = 0;
                     if (repeat == 0){
+                       end_time = GetTickUs();
                         break;
                     }
                 }
@@ -682,6 +689,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                 last = GetTickUs();
             }
         }
+        cout<<"amount of time it took was:"<< (end_time-start_time)/1000000<< 's'<<endl;
     }
     catch (k_api::KDetailedException& ex)
     {
