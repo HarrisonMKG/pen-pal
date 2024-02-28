@@ -436,9 +436,15 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
     // Assuming the format of the csv_file will be in (time, x, y, z) for each line
     vector<float> temp_first_points(3, 0.0);
     int indx = 0;
+    float lifted_thresh = 0.0;
+    for (int i = 0; i<csv_points.size(); i++){
+        lifted_thresh += csv_points[i][3];
+    }
+    lifted_thresh /= csv_points.size();
+    cout<<lifted_thresh<<endl;
     for (auto& point : csv_points)
 	{
-		if(point.size()>3){
+		if(point.size() > 3){
 			point.erase(point.begin());// remove seconds value for IR sensor
 		}
         if (indx == 0) {
@@ -448,8 +454,12 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         }
         point[0] -= bais_vector[0];
         point[1] -= bais_vector[1];
+        if (point[2] - lifted_thresh > 0.0){
+            point[2] = altered_origin[2]+0.01;
+        }
+        else{
         point[2] =  altered_origin[2];
-
+        }
 		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
 	}
     if (verbose) {
