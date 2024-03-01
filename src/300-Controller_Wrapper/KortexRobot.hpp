@@ -131,7 +131,6 @@ public:
   void plot(vector<vector<float>> expected_data,vector<vector<float>> measured_data);
   int create_plot_file(string file_name, vector<vector<float>> data);
 
-  ofstream plot_data;
 	FILE *gnu_plot;
 
 protected:

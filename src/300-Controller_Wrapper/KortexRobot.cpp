@@ -32,7 +32,7 @@ void KortexRobot::plot(vector<vector<float>> expected_data,vector<vector<float>>
   string expected_file = "tmp_expected.txt";
   string measured_file = "tmp_measured.txt";
   create_plot_file(expected_file,expected_data);
-  //create_plot_file(measured_file,measured_data);
+  create_plot_file(measured_file,measured_data);
 
   string cmd = "plot '" + expected_file + "' with lines, \\\n" \ 
   "'" + measured_file + "' with line \n";
@@ -52,14 +52,15 @@ int KortexRobot::start_plot()
     std::cerr << "Error: Gnuplot not found." << std::endl;
     return 1;
   }
-
+    return 0;
 }
 
 int KortexRobot::create_plot_file(string file_name, vector<vector<float>> data)
 {
   // Open a file for writing
-  KortexRobot::plot_data.open(file_name);
-  if (!plot_data.is_open()) 
+  ofstream file_stream;
+  file_stream.open(file_name);
+  if (!file_stream.is_open()) 
   {
     std::cerr << "Error: Unable to open data file." << std::endl;
     return 1;
@@ -73,9 +74,10 @@ int KortexRobot::create_plot_file(string file_name, vector<vector<float>> data)
 
   for(auto points: data_subset)
   {
-    KortexRobot::plot_data << points[0] << " " << points[1] << endl;
+    file_stream << points[0] << " " << points[1] << endl;
   }
-  KortexRobot::plot_data.close();
+  file_stream.close();
+  return 0;
 }
 
 void KortexRobot::init_pids()
@@ -438,8 +440,8 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
     try
     {
       pose = base->ComputeForwardKinematics(joint_angles);
-      waypoints.push_back({angles[0],pose.x(),pose.y(),pose.z()});
-      file << pose.x() << ',' << pose.y() << ',' << pose.z() << endl;
+      waypoints.push_back({angles[0],pose.x()-bais_vector[0],pose.y()-bais_vector[1],pose.z()-bais_vector[2]});
+      file << pose.x()-bais_vector[0] << ',' << pose.y()-bais_vector[1] << ',' << pose.z()-bais_vector[2] << endl;
     }
     catch(const Kinova::Api::KDetailedException e)
     {
