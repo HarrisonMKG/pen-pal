@@ -375,7 +375,7 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 				// Handle the error or skip the invalid value
 			}
 		}
-        if (fmod(skipper,7)==0){
+        if (fmod(skipper,1)==0){
             result.push_back(row);
         }
 		skipper++;
@@ -459,7 +459,7 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         point[0] -= bais_vector[0];
         point[1] -= bais_vector[1];
         if (point[2] - lifted_thresh > 0.0){
-            point[2] = altered_origin[2]+0.01;
+            point[2] = altered_origin[2]+0.005;
         }
         else{
         point[2] =  altered_origin[2];
@@ -643,7 +643,8 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                         float temp_pos = current_pos + motor_command[i] * 0.001;
                         base_command.mutable_actuators(i)->set_position(temp_pos);
                     }else if (actuator_control_types[i] == 1) {
-                        base_command.mutable_actuators(i)->set_position(current_pos);
+                        float temp_pos = current_pos + motor_command[i] * 0.001;
+                        base_command.mutable_actuators(i)->set_position(temp_pos);
                         base_command.mutable_actuators(i)->set_velocity(motor_command[i]);
                     } else {
                         base_command.mutable_actuators(i)->set_position(current_pos);
@@ -656,7 +657,9 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                 if(ready_joints == 5){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
-
+                    for(int i = 0; i < actuator_count - 1; i++){
+                    pids[i].clear_integral();
+                    }
                     measured_angles.push_back(measure_joints(base_feedback));
                     reachPositions = {0,0,0,0,0,0};
                 }
