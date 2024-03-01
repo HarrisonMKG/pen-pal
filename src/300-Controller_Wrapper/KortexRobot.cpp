@@ -440,8 +440,8 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
     try
     {
       pose = base->ComputeForwardKinematics(joint_angles);
-      waypoints.push_back({angles[0],pose.x()-bais_vector[0],pose.y()-bais_vector[1],pose.z()-bais_vector[2]});
-      file << pose.x()-bais_vector[0] << ',' << pose.y()-bais_vector[1] << ',' << pose.z()-bais_vector[2] << endl;
+      waypoints.push_back({angles[0],pose.x()+bais_vector[0],pose.y()+bais_vector[1],pose.z()+bais_vector[2]});
+      file << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
     }
     catch(const Kinova::Api::KDetailedException e)
     {
