@@ -40,8 +40,10 @@ void KortexRobot::plot(vector<vector<float>> expected_data,vector<vector<float>>
   fflush(gnu_plot);
 
   //Clean up
-  //std::remove(expected_file)
-  //std::remove("realtime_data.txt");
+  
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::remove(expected_file.c_str());
+  std::remove(measured_file.c_str());
 }
 
 float KortexRobot::rms_error(vector<vector<float>> expected_data, vector<vector<float>> measured_data)
