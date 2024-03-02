@@ -44,6 +44,32 @@ void KortexRobot::plot(vector<vector<float>> expected_data,vector<vector<float>>
   //std::remove("realtime_data.txt");
 }
 
+float KortexRobot::rms_error(vector<vector<float>> expected_data, vector<vector<float>> measured_data)
+{
+    float error_sum = 0;
+  // measured_data.size()-1 beacuse last data point seems to have crazy high error
+    for(int i = 0; i<measured_data.size()-1; i++)
+    {
+      float x_error = pow((expected_data[i][1] - measured_data[i][1])*1000,2);
+      float y_error = pow((expected_data[i][2] - measured_data[i][2])*1000,2);
+      float line_error = sqrt(x_error+y_error);
+    /*
+    cout << "x maesured :"<< measured_data[i][1] << endl;
+    cout << "x expected:"<< expected_data[i][1] << endl;
+    cout << "y maesured :"<< measured_data[i][2] << endl;
+    cout << "y expected:"<< expected_data[i][2] << endl;
+    cout << "line error:"<< expected_data[i][2] << endl;
+      cout << "x| measured:" << measured_data[i][1] << " expected:"<< expected_data[i][1] << " error: "<< x_error << endl;
+      */
+
+      float error_sqr = pow(line_error,2);
+      //cout << "error sum: " << error_sum << endl;
+      error_sum += error_sqr;
+    }
+  float rms = sqrt(error_sum/(measured_data.size()-1));
+  return rms; 
+}
+
 int KortexRobot::start_plot()
 {
   FILE *gnuplotPipe = popen("gnuplot -persist", "w");
