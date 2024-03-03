@@ -459,7 +459,7 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         point[0] -= bais_vector[0];
         point[1] -= bais_vector[1];
         if (point[2] - lifted_thresh > 0.0){
-            point[2] = altered_origin[2]+0.005;
+            point[2] = altered_origin[2]+0.004;
         }
         else{
         point[2] =  altered_origin[2];
@@ -568,6 +568,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
         int stage = 0;
         int num_of_targets = target_waypoints.size();
         std::vector<int> reachPositions(5, 0);
+        std::vector<float> temp_pos(5,0);
         measured_angles.push_back(measure_joints(base_feedback)); // Get reference point for start position
         int start_time = GetTickUs();
         int end_time;
@@ -636,21 +637,28 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                     cout << endl;
                     // }
                     motor_command[i] = control_sig;
-              
+                    temp_pos[i] = current_pos + motor_command[i] * 0.001;
+                }
+                //sets up frame ids to skip incorrecly sequenced requests
+                base_command.set_frame_id(base_command.frame_id() + 1);
+                if (base_command.frame_id() > 65535){
+                    base_command.set_frame_id(0);
+                }
 
+                //decrease the time between motors recieving commands and decrease interference between one another
+                for(int i = 0; i < actuator_count - 1; i++)
+                { 
                     // Update the joints position/velocity/torque based on its control mode
                     if (actuator_control_types[i] == 0) {
-                        float temp_pos = current_pos + motor_command[i] * 0.001;
-                        base_command.mutable_actuators(i)->set_position(temp_pos);
+                        base_command.mutable_actuators(i)->set_position(temp_pos[i]);
                     }else if (actuator_control_types[i] == 1) {
-                        float temp_pos = current_pos + motor_command[i] * 0.001;
-                        base_command.mutable_actuators(i)->set_position(temp_pos);
+                        base_command.mutable_actuators(i)->set_position(temp_pos[i]);
                         base_command.mutable_actuators(i)->set_velocity(motor_command[i]);
                     } else {
-                        base_command.mutable_actuators(i)->set_position(current_pos);
+                        base_command.mutable_actuators(i)->set_position(temp_pos[i]);
                         base_command.mutable_actuators(i)->set_torque_joint(motor_command[i]);
                     }
-                    
+                    base_command.mutable_actuators(i)->set_command_id(base_command.frame_id());
                 }
                 // See how many joints are at their target, move onto the next waypoint if all are (Can change how many are "all")
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
