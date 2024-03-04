@@ -111,8 +111,8 @@ public:
     const vector<int> actuator_control_types = {1,1,1,1,1,0};
 	const vector<float> command_max = {100.0, 30, 30.0, 15.0, 30, 25.0}; 
 	const vector<float> command_min = {-100.0, -30.0, -30.0, -15.0, -30, -25.0}; 
-	const vector<float> step_change_limit = {20.0, 30, 30, 20.0, 20.0, 20.0}; 
-    std::vector<float> motor_command= {10.0f, 10.0f, 3.0f, 10.0f, 10.0f, 10.0f}; //Vector of current_velocities/torques to use in calculation for next command
+	const vector<float> step_change_limit = {20.0, 30, 2, 20.0, 20.0, 20.0}; 
+    std::vector<float> motor_command= {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f}; //Vector of current_velocities/torques to use in calculation for next command
 
 
 	void init_pids();
@@ -123,15 +123,16 @@ public:
 
     int actuator_count;
     vector<Pid_Loop> pids;
-    void generate_performance_file(const std::string& filename, vector<vector<float>>data);
+    vector<vector<float>> generate_performance_file(const std::string& filename, vector<vector<float>>data);
 
 	const vector<float> surface_cords = {0.455,0,0.115};
 	void find_paper();
     vector<float> measure_joints(k_api::BaseCyclic::Feedback base_feedback);
-	void plot(vector<vector<float>>data);
 	int start_plot();
+    void plot(vector<vector<float>> expected_data,vector<vector<float>> measured_data);
+    int create_plot_file(string file_name, vector<vector<float>> data);
+    float rms_error(vector<vector<float>> expected, vector<vector<float>> measured);
 
-  ofstream plot_data;
 	FILE *gnu_plot;
 
 protected:

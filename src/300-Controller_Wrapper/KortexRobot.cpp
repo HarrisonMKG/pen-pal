@@ -25,16 +25,51 @@ KortexRobot::KortexRobot(const std::string& ip_address, const std::string& usern
 	// init_pids();
 }
 
-void KortexRobot::plot(vector<vector<float>>data)
+void KortexRobot::plot(vector<vector<float>> expected_data,vector<vector<float>> measured_data)
 {
 	start_plot();
-  for(auto points: data)
-  {
-    KortexRobot::plot_data << points[0] << " " << points[1] << endl;
-    fprintf(gnu_plot, "plot 'realtime_data.txt' with lines\n");
-    fflush(gnu_plot);
-  }
+
+  string expected_file = "tmp_expected.txt";
+  string measured_file = "tmp_measured.txt";
+  create_plot_file(expected_file,expected_data);
+  create_plot_file(measured_file,measured_data);
+
+  string cmd = "plot '" + expected_file + "' with lines, \\\n" \ 
+  "'" + measured_file + "' with line \n";
+  fprintf(gnu_plot, cmd.c_str());
+  fflush(gnu_plot);
+
+  //Clean up
   
+  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  std::remove(expected_file.c_str());
+  std::remove(measured_file.c_str());
+}
+
+float KortexRobot::rms_error(vector<vector<float>> expected_data, vector<vector<float>> measured_data)
+{
+    float error_sum = 0;
+  // measured_data.size()-1 beacuse last data point seems to have crazy high error
+    for(int i = 0; i<measured_data.size()-1; i++)
+    {
+      float x_error = pow((expected_data[i][1] - measured_data[i][1])*1000,2);
+      float y_error = pow((expected_data[i][2] - measured_data[i][2])*1000,2);
+      float line_error = sqrt(x_error+y_error);
+    /*
+    cout << "x maesured :"<< measured_data[i][1] << endl;
+    cout << "x expected:"<< expected_data[i][1] << endl;
+    cout << "y maesured :"<< measured_data[i][2] << endl;
+    cout << "y expected:"<< expected_data[i][2] << endl;
+    cout << "line error:"<< expected_data[i][2] << endl;
+      cout << "x| measured:" << measured_data[i][1] << " expected:"<< expected_data[i][1] << " error: "<< x_error << endl;
+      */
+
+      float error_sqr = pow(line_error,2);
+      //cout << "error sum: " << error_sum << endl;
+      error_sum += error_sqr;
+    }
+  float rms = sqrt(error_sum/(measured_data.size()-1));
+  return rms; 
 }
 
 int KortexRobot::start_plot()
@@ -45,13 +80,32 @@ int KortexRobot::start_plot()
     std::cerr << "Error: Gnuplot not found." << std::endl;
     return 1;
   }
+    return 0;
+}
 
+int KortexRobot::create_plot_file(string file_name, vector<vector<float>> data)
+{
   // Open a file for writing
-  KortexRobot::plot_data.open("realtime_data.txt");
-  if (!plot_data.is_open()) {
+  ofstream file_stream;
+  file_stream.open(file_name);
+  if (!file_stream.is_open()) 
+  {
     std::cerr << "Error: Unable to open data file." << std::endl;
     return 1;
   }
+  
+    vector<vector<float>> data_subset(data);
+    for(auto &points : data_subset)
+    {
+      points = {points.begin() + 1, points.end() - 1};
+    }
+
+  for(auto points: data_subset)
+  {
+    file_stream << points[0] << " " << points[1] << endl;
+  }
+  file_stream.close();
+  return 0;
 }
 
 void KortexRobot::init_pids()
@@ -382,19 +436,21 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 	return result;
 }
 
-void KortexRobot::generate_performance_file(const std::string& filename, vector<vector<float>> data) {
-	std::vector<std::vector<float>> result;
+vector<vector<float>> KortexRobot::generate_performance_file(const std::string& filename, vector<vector<float>> data) {
+	vector<vector<float>> waypoints;
 
 	std::ofstream file(filename);
   vector<string> col_headers = {"seconds","x","y","z"};
 
   //populate headers
+  /*
   for(int i= 0; i<col_headers.size();i++)
   {
     file<<col_headers[i];
     if(i!=col_headers.size()-1) file << ",";
   }
   file << endl;
+  */
 
   k_api::Base::Pose pose;
 
@@ -414,7 +470,8 @@ void KortexRobot::generate_performance_file(const std::string& filename, vector<
     try
     {
       pose = base->ComputeForwardKinematics(joint_angles);
-      file << pose.x() << ',' << pose.y() << ',' << pose.z() << endl;
+      waypoints.push_back({angles[0],pose.x()+bais_vector[0],pose.y()+bais_vector[1],pose.z()+bais_vector[2]});
+      file << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
     }
     catch(const Kinova::Api::KDetailedException e)
     {
@@ -428,6 +485,7 @@ void KortexRobot::generate_performance_file(const std::string& filename, vector<
   }
 
 	file.close();
+  return waypoints;
 }
 
 std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, float kTheta_x,
@@ -518,6 +576,16 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
     //                      ALSO: Need to change the ready positions check to move onto new stages and which joints are skipped in RT loop
     target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
     target_joint_angles_IK = convert_points_to_angles(target_waypoints);
+    cout << "Using the following Joints: ";
+    for(int i = 0; i < actuator_count; i++) {
+        cout << "Joint " << i + 1 << ": ";
+        if (actuator_control_types[i] == 0){
+            cout << "NO" << endl;
+        } else {
+            cout << "YES" << endl;
+        }
+    }
+
     // target_waypoints = {{350,30,320,355,110,77}, {350,15,270,355,110,77}};
     // target_joint_angles_IK = target_waypoints;   
 
@@ -530,6 +598,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
     int timeout = 0;
     vector<vector<float>> measured_angles;
 
+    int active_joints = 0;
     //mylogger.Log("Initializing the arm for velocity low-level control example", INFO);
     try
     {   
@@ -548,6 +617,9 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
         // Set all of the actuators to the appropriate control mode (position or velocity currently)
         for(int i = 1; i < actuator_count; i++) {
             set_actuator_control_mode(actuator_control_types[i-1], i); //Set actuators to velocity mode dont use index values
+            if (actuator_control_types[i-1] != 0) {
+                active_joints += 1;
+            }
         }
 
         int stage = 0;
@@ -566,7 +638,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
                     // Skip specific Actuators during testing 
-                    if (i==5){// || i==2){
+                    if (actuator_control_types[i] == 0){// || i==2){
                         continue;
                     } 
 
@@ -590,12 +662,20 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
 
                     // Get control signal from calculate PID
 					float control_sig = pids[i].calculate_pid(current_pos, target_pos, i);
-                    // if (i == 2) {
                         cout << "[" << stage+1 << ", " << i << "]\tCurr vs Target Pos: (";
                         cout << std::fixed << std::setprecision(3) << current_pos << ", " << std::fixed << std::setprecision(3) << target_pos << ")";
                         cout << "\tCurrent vs New Vel: (" << std::fixed << std::setprecision(3) << current_velocity << ", " << std::fixed << std::setprecision(3) << control_sig <<")";
-                    // }
                     // Limit the max absolute value of the new velocity/command being sent
+                    if (abs(motor_command[i] - control_sig) > step_change_limit[i]) {
+                        // Reduce control signal to be atmost 
+                        if (motor_command[i] < control_sig) {
+                            control_sig = motor_command[i] + step_change_limit[i];
+                        } else {
+                            control_sig = motor_command[i] - step_change_limit[i];
+                        }
+                        cout << "\t CAP SIG: " << control_sig;
+                    }
+                    
                     if (control_sig > command_max[i]) {
                         control_sig = command_max[i]; 
                         cout << "\t MAXXED SIG: " << control_sig;
@@ -610,15 +690,10 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                         // Update command based on control signal (And control mode of actuator)
                         reachPositions[i] = 0;
                     } else {                       
-
-                        // if (i == 2) {
-                            std::cout << "\t ARRIVED";
-                        // }
+                        std::cout << "\t ARRIVED";
                         reachPositions[i] = 1;
                     }
-                    // if (i == 2) {
                     cout << endl;
-                    // }
                     motor_command[i] = control_sig;
               
 
@@ -637,7 +712,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                 }
                 // See how many joints are at their target, move onto the next waypoint if all are (Can change how many are "all")
                 int ready_joints = std::accumulate(reachPositions.begin(), reachPositions.end(), 0);
-                if(ready_joints == 5){
+                if(ready_joints == active_joints){
                     stage++;
                     std::cout << "finished stage: " <<stage << std::endl << std::endl;
 
