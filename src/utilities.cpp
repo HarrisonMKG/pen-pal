@@ -14,6 +14,7 @@ ExampleArgs ParseExampleArguments(int argc, char *argv[])
         ("o,output", "output directory", cxxopts::value<std::string>()->default_value("kortex_logs"))
         ("c,coordinates", "file path to coordinates csv data", cxxopts::value<std::string>()->default_value("coordinates/ir_sensor_data.csv"))
         ("g,gain", "file path to gain values used", cxxopts::value<std::string>()->default_value("../gain_values/gain_1.txt"))
+        ("r,repeat", "flag to indicate whether to repeate trajectories", cxxopts::value<std::string>()->default_value("N"))
     ;
 
     ExampleArgs resultArgs;
@@ -34,6 +35,11 @@ ExampleArgs ParseExampleArguments(int argc, char *argv[])
         resultArgs.output = parsed_options["output"].as<std::string>();
         resultArgs.coordinates = parsed_options["coordinates"].as<std::string>();
         resultArgs.gain = parsed_options["gain"].as<std::string>();
+        if (parsed_options["repeat"].as<std::string>() == "Y" || parsed_options["repeat"].as<std::string>() == "y"){
+            resultArgs.repeat = true;
+        } else {
+            resultArgs.repeat = false;
+        }
     }
     catch(const cxxopts::OptionException& exception)
     {

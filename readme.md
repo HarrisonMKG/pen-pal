@@ -88,4 +88,10 @@ Further arguements can also be passed:
 -h,--help : provides a list of arguments
 -o,--output : provide output directory for log files
 -c,--coordiantes : provide csv coordiante data
+-g,--gain : provide file name for the gain values to be used for each PID controller
+
 ```
+
+./bin/300-Controller_Wrapper_100-Pen-Pal-Demonstration.exe  -g ../gain_values/gain_2.txt -c ../coordinates/line_X_up_down_short.csv -r Y
+
+./bin/300-Controller_Wrapper_100-Pen-Pal-Demonstration.exe  -g ../gain_values/gain_2.txt -c ../coordinates/line_zig_zag.csv
