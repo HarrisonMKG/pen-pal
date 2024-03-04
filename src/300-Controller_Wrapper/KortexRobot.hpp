@@ -123,15 +123,16 @@ public:
 
     int actuator_count;
     vector<Pid_Loop> pids;
-    void generate_performance_file(const std::string& filename, vector<vector<float>>data);
+    vector<vector<float>> generate_performance_file(const std::string& filename, vector<vector<float>>data);
 
 	const vector<float> surface_cords = {0.455,0,0.115};
 	void find_paper();
     vector<float> measure_joints(k_api::BaseCyclic::Feedback base_feedback);
-	void plot(vector<vector<float>>data);
 	int start_plot();
+    void plot(vector<vector<float>> expected_data,vector<vector<float>> measured_data);
+    int create_plot_file(string file_name, vector<vector<float>> data);
+    float rms_error(vector<vector<float>> expected, vector<vector<float>> measured);
 
-  ofstream plot_data;
 	FILE *gnu_plot;
 
 protected:
