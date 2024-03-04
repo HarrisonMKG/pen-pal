@@ -111,8 +111,8 @@ public:
     const vector<int> actuator_control_types = {1,1,1,1,1,0};
 	const vector<float> command_max = {100.0, 30, 30.0, 15.0, 30, 25.0}; 
 	const vector<float> command_min = {-100.0, -30.0, -30.0, -15.0, -30, -25.0}; 
-	const vector<float> step_change_limit = {20.0, 30, 30, 20.0, 20.0, 20.0}; 
-    std::vector<float> motor_command= {10.0f, 10.0f, 3.0f, 10.0f, 10.0f, 10.0f}; //Vector of current_velocities/torques to use in calculation for next command
+	const vector<float> step_change_limit = {20.0, 30, 2, 20.0, 20.0, 20.0}; 
+    std::vector<float> motor_command= {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f}; //Vector of current_velocities/torques to use in calculation for next command
 
 
 	void init_pids();
