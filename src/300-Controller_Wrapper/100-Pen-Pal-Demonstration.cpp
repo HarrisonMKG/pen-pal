@@ -25,9 +25,9 @@ int main(int argc, char **argv)
     vector<vector<float>> expected_waypoints = pen_pal.read_csv(input_coordinates_file);
     vector<vector<float>> measured_joint_angles = pen_pal.move_cartesian(expected_waypoints);
 
-  cout<< "Generating Perfromance File..." << endl;
+    cout<< "Generating Perfromance File..." << endl;
     vector<vector<float>> measured_waypoints = pen_pal.generate_performance_file("measured_waypoints.csv",measured_joint_angles);
-  cout<< "Calculating Plot:" <<endl;
+    cout<< "Calculating Plot:" <<endl;
     pen_pal.plot(expected_waypoints,measured_waypoints);
     float rms = pen_pal.rms_error(expected_waypoints,measured_waypoints); 
     cout << "RMS Error:\t"<< rms <<endl;
