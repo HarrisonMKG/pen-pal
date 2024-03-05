@@ -16,11 +16,12 @@
 
 namespace k_api = Kinova::Api;
 
-KortexRobot::KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password)
+KortexRobot::KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password, bool demo)
 {
 	KortexRobot::ip_address = ip_address;
 	KortexRobot::username = username;
 	KortexRobot::password = password;
+	KortexRobot::running_demo = demo;
 	KortexRobot::connect();
 	// init_pids();
 }
@@ -40,10 +41,9 @@ void KortexRobot::plot(vector<vector<float>> expected_data,vector<vector<float>>
   fflush(gnu_plot);
 
   //Clean up
-  
-  std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-  std::remove(expected_file.c_str());
-  std::remove(measured_file.c_str());
+  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
+  //std::remove(expected_file.c_str());
+  //std::remove(measured_file.c_str());
 }
 
 float KortexRobot::rms_error(vector<vector<float>> expected_data, vector<vector<float>> measured_data)
@@ -227,7 +227,7 @@ void KortexRobot::connect()
     auto current_pose = base->GetMeasuredCartesianPose();
     altered_origin = {current_pose.x(),current_pose.y(),current_pose.z()};
 
-    bais_vector = {0.0, 0.0, 0.0};  
+    bais_vector = {0.0, 0.0, 0.0};      
 }
 
 void KortexRobot::disconnect()
@@ -551,30 +551,10 @@ void KortexRobot::calculate_bias(std::vector<float> first_waypoint) {
 vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition,bool repeat, float kTheta_x, 
 		float kTheta_y, float kTheta_z)
 {
-    // Define the callback function used in Refresh_callback
+    // callback function used in Refresh_callback (Not being used in our code thats why its empty)
     auto lambda_fct_callback = [](const Kinova::Api::Error &err, const k_api::BaseCyclic::Feedback data)
     {
-        // TODO: Remove this in a real-time loop
-		// /*
-        std::string serialized_data;
-        std::string output_data; 
-        // serialized_data.append("Joint[0]");
-        // google::protobuf::util::MessageToJsonString(data.actuators(0), &serialized_data);
-        serialized_data.append("\nJoint[1]");
-        google::protobuf::util::MessageToJsonString(data.actuators(1), &serialized_data);
-        // serialized_data.append("\nJoint[2]");
-        // google::protobuf::util::MessageToJsonString(data.actuators(2), &serialized_data);
-        // serialized_data.append("\nJoint[3]");
-        // google::protobuf::util::MessageToJsonString(data.actuators(3), &serialized_data);
-        // serialized_data.append("\nJoint[4]");
-        // google::protobuf::util::MessageToJsonString(data.actuators(4), &serialized_data);
-        // serialized_data.append("\nJoint[5]");
-        // google::protobuf::util::MessageToJsonString(data.actuators(5), &serialized_data);
-        // serialized_data.append("\nBASE");
-        // google::protobuf::util::MessageToJsonString(data.base(), &serialized_data);
 
-        // std::cout << serialized_data << std::endl << std::endl;
-    // */
     };
 
     k_api::BaseCyclic::Feedback base_feedback;
@@ -591,6 +571,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
     //                      ALSO: Need to change the ready positions check to move onto new stages and which joints are skipped in RT loop
     target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
     target_joint_angles_IK = convert_points_to_angles(target_waypoints);
+    
     cout << "Using the following Joints: ";
     for(int i = 0; i < actuator_count; i++) {
         cout << "Joint " << i + 1 << ": ";
@@ -601,20 +582,15 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
         }
     }
 
-    // target_waypoints = {{350,30,320,355,110,77}, {350,15,270,355,110,77}};
-    // target_joint_angles_IK = target_waypoints;   
-
     system("pause");
 
     int timer_count = 0;
     int64_t now = 0;
     int64_t last = 0;
-
     int timeout = 0;
     vector<vector<float>> measured_angles;
 
     int active_joints = 0;
-    //mylogger.Log("Initializing the arm for velocity low-level control example", INFO);
     try
     {   
         // Set the base in low-level servoing mode
@@ -654,8 +630,10 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                 // PID LOOPS WOULD GO WITHIN HERE
                 for(int i = 0; i < actuator_count - 1; i++)
                 { 
+
+                    // TODO: DEV-NICK Possibly remove?
                     // Skip specific Actuators during testing 
-                    if (actuator_control_types[i] == 0){// || i==2){
+                    if (actuator_control_types[i] == 0){
                         continue;
                     } 
 
@@ -667,6 +645,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                         current_velocity = current_torque;
                     }
                     float target_pos = target_joint_angles_IK[stage][i];
+                    
                     // Only use position error here aswell to see if we can signal joint reached its target
                     float position_error = target_pos - current_pos;
                     if (abs(position_error) >= 180) {
@@ -677,11 +656,14 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                         }
                     }
 
-                    // Get control signal from calculate PID
+                   
 					float control_sig = pids[i].calculate_pid(current_pos, target_pos, i);
+                     if (!running_demo) {
                         cout << "[" << stage+1 << ", " << i << "]\tCurr vs Target Pos: (";
                         cout << std::fixed << std::setprecision(3) << current_pos << ", " << std::fixed << std::setprecision(3) << target_pos << ")";
                         cout << "\tCurrent vs New Vel: (" << std::fixed << std::setprecision(3) << current_velocity << ", " << std::fixed << std::setprecision(3) << control_sig <<")";
+                     }
+                    
                     // Limit the max absolute value of the new velocity/command being sent
                     if (abs(motor_command[i] - control_sig) > step_change_limit[i]) {
                         // Reduce control signal to be atmost 
@@ -690,15 +672,16 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                         } else {
                             control_sig = motor_command[i] - step_change_limit[i];
                         }
-                        cout << "\t CAP SIG: " << control_sig;
+                        if (!running_demo) {cout << "\t CAP SIG: " << control_sig;}
                     }
                     
                     if (control_sig > command_max[i]) {
                         control_sig = command_max[i]; 
-                        cout << "\t MAXXED SIG: " << control_sig;
+                        if (!running_demo) {cout << "\t MAXED SIG: " << control_sig;}
+
                     } else if (control_sig < command_min[i]) {
                         control_sig = command_min[i]; 
-                        cout << "\t MIN SIG: " << control_sig;
+                        if (!running_demo) {cout << "\t MIN SIG: " << control_sig;}
                     }
                     
 
@@ -707,10 +690,10 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                         // Update command based on control signal (And control mode of actuator)
                         reachPositions[i] = 0;
                     } else {                       
-                        std::cout << "\t ARRIVED";
+                        // std::cout << "\t ARRIVED";
                         reachPositions[i] = 1;
                     }
-                    cout << endl;
+                    if (!running_demo) {cout << endl;}
                     motor_command[i] = control_sig;
                     temp_pos[i] = current_pos + motor_command[i] * 0.001;
                 }
