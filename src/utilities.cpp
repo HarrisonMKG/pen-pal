@@ -15,6 +15,7 @@ ExampleArgs ParseExampleArguments(int argc, char *argv[])
         ("c,coordinates", "file path to coordinates csv data", cxxopts::value<std::string>()->default_value("coordinates/ir_sensor_data.csv"))
         ("g,gain", "file path to gain values used", cxxopts::value<std::string>()->default_value("../gain_values/gain_1.txt"))
         ("r,repeat", "flag to indicate whether to repeate trajectories", cxxopts::value<std::string>()->default_value("N"))
+        ("d,demo", "Indicate whether running demo. Will remove extra logs and code during execution", cxxopts::value<std::string>()->default_value("N"))
     ;
 
     ExampleArgs resultArgs;
@@ -28,17 +29,20 @@ ExampleArgs ParseExampleArguments(int argc, char *argv[])
             std::cout << options.help() << std::endl;
             exit(EXIT_SUCCESS);
         }
-
+        resultArgs.repeat = false;
+        resultArgs.demo = false;
         resultArgs.ip_address = parsed_options["ip"].as<std::string>();
         resultArgs.username = parsed_options["username"].as<std::string>();
         resultArgs.password = parsed_options["password"].as<std::string>();
         resultArgs.output = parsed_options["output"].as<std::string>();
         resultArgs.coordinates = parsed_options["coordinates"].as<std::string>();
         resultArgs.gain = parsed_options["gain"].as<std::string>();
+
         if (parsed_options["repeat"].as<std::string>() == "Y" || parsed_options["repeat"].as<std::string>() == "y"){
             resultArgs.repeat = true;
-        } else {
-            resultArgs.repeat = false;
+        }
+        if (parsed_options["demo"].as<std::string>() == "Y" || parsed_options["demo"].as<std::string>() == "y"){
+            resultArgs.demo = true;
         }
     }
     catch(const cxxopts::OptionException& exception)

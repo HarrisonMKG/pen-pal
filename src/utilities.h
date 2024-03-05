@@ -24,6 +24,7 @@ struct ExampleArgs
     std::string output; //Output dir for logger class
     std::string coordinates; //For KortexRobot class
     std::string gain; //For KortexRobot class
+    bool        demo; //For KortexRobot class
     bool        repeat; //For KortexRobot class
 };
 

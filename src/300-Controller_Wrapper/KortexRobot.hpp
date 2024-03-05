@@ -56,6 +56,7 @@ private:
     std::string ip_address;
     std::string username;
     std::string password;
+    bool running_demo;
     
 
     k_api::TransportClientTcp* transport;
@@ -84,7 +85,7 @@ private:
 	int64_t GetTickUs();
 
 public:
-    KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password);
+    KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password, bool inputdemo = false);
 	void go_home();
 	void connect();
 	void disconnect();
@@ -102,18 +103,14 @@ public:
                                                                         float kTheta_z);
 
     void calculate_bias(std::vector<float> first_waypoint);
-
-    // get_lambda_feedback_callback();
-
     void output_arm_limits_and_mode();
 
-    const vector<float> actuator_pos_tolerance = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+    const vector<float> actuator_pos_tolerance = {0.08, 0.1, 0.1, 0.08, 0.1, 0.1};
     const vector<int> actuator_control_types = {1,1,1,1,1,0};
 	const vector<float> command_max = {100.0, 30, 30.0, 15.0, 30, 25.0}; 
 	const vector<float> command_min = {-100.0, -30.0, -30.0, -15.0, -30, -25.0}; 
 	const vector<float> step_change_limit = {20.0, 30, 2, 20.0, 20.0, 20.0}; 
     std::vector<float> motor_command= {10.0f, 10.0f, 10.0f, 10.0f, 10.0f, 10.0f}; //Vector of current_velocities/torques to use in calculation for next command
-
 
 	void init_pids();
 	void get_gain_values(const std::string& filename);
@@ -123,15 +120,16 @@ public:
 
     int actuator_count;
     vector<Pid_Loop> pids;
-    vector<vector<float>> generate_performance_file(const std::string& filename, vector<vector<float>>data);
 
 	const vector<float> surface_cords = {0.455,0,0.115};
 	void find_paper();
+    // Plotting and performance functions
     vector<float> measure_joints(k_api::BaseCyclic::Feedback base_feedback);
 	int start_plot();
     void plot(vector<vector<float>> expected_data,vector<vector<float>> measured_data);
     int create_plot_file(string file_name, vector<vector<float>> data);
     float rms_error(vector<vector<float>> expected, vector<vector<float>> measured);
+    vector<vector<float>> generate_performance_file(const std::string& filename, vector<vector<float>>data);
 
 	FILE *gnu_plot;
 
