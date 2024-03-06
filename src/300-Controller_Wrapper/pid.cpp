@@ -25,7 +25,6 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 			error = error + 360;
 		}
 	}
-
 	// For actuator 5, (index 4) It cannot reach the Joint cannot reach angles from 120 to 239 
 	// Check if the error being used, causes the arm to cross that range, use the opposite error value.
 	if (actuator_index == 4) {
@@ -54,10 +53,13 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 	float controlSignal = P + I + D;
 	
 	prevErr = error;
-
 	return controlSignal;
 }
 
+void Pid_Loop::clear_integral(){
+	integral = 0;
+	return;
+}
 
 
 Pid_Loop::~Pid_Loop()
