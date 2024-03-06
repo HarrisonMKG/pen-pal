@@ -18,7 +18,6 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 {
 	//PID Controller calculations
 	float error = setPoint - currentLocation; 
-	float temp_error = error; //Save this error value to use for Actuator 4 if it meets its boundary condition
 	if (abs(error) >= 180) {
 		if (error > 0){
 			error = error - 360;
@@ -34,7 +33,7 @@ float Pid_Loop::calculate_pid(float currentLocation, float setPoint, int actuato
 		//if current position is above 239, error is negative and target is about 239
 		if (setPoint >= 120 && setPoint <= 239) {
 			error = 0;
-			cout << "WARNING ACTUATOR 4 IS BEING TOLD TO GO TO ILLEGAL POSITION" << std::endl;
+			std::cout << "WARNING ACTUATOR 4 IS BEING TOLD TO GO TO ILLEGAL POSITION" << std::endl;
 		} else if (currentLocation < 120 && error > 0 && setPoint > 120) {
 			error = error - 360;
 		} else if (currentLocation > 239 && error < 0 && setPoint < 239) {
