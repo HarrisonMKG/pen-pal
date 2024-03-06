@@ -758,7 +758,7 @@ void KortexRobot::printException(k_api::KDetailedException& ex)
     std::cout << "Error sub-code string equivalent: " << k_api::SubErrorCodes_Name(k_api::SubErrorCodes(error_info.error_sub_code())) << std::endl;
 }
 
-std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vector<std::vector<float>> target_points)
+static std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vector<std::vector<float>> target_points)
 {   
     // Function take an array of target points in format (x,y,z,theta_x,theta_y,theta_z)
     // Feeds it into the Kinova IK function that will spit out the target joint angles 

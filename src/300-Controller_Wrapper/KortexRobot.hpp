@@ -94,7 +94,7 @@ public:
 	vector<vector<float>> move_cartesian(std::vector<std::vector<float>> waypointsDefinition,
 					float kTheta_x = 180.0f, float kTheta_y = 0.0f, float kTheta_z = 90.0f);
 
-	std::vector<std::vector<float>> convert_points_to_angles(std::vector<vector<float>> target_points);
+	static std::vector<std::vector<float>> convert_points_to_angles(std::vector<vector<float>> target_points);
 	
     std::vector<std::vector<float>> read_csv(const std::string &filename);
     std::vector<std::vector<float>> convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, 
