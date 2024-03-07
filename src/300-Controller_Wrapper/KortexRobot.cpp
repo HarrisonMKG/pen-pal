@@ -55,7 +55,7 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
     for(int i = 0; i<measured_data.size()-1; i++)
     {
       float time_error = pow((expected_data[i][0]*1000 - measured_data[i][0]),2); // *1000 to undo error in read_csv scale
-      cout << "time exp: " << expected_data[i][0]*1000 << " time measure: " << measured_data[i][0];
+      //cout << "time exp: " << expected_data[i][0]*1000 << " time measure: " << measured_data[i][0];
 
       float x_error = pow((expected_data[i][1] - measured_data[i][1])*1000,2);
       float y_error = pow((expected_data[i][2] - measured_data[i][2])*1000,2);
