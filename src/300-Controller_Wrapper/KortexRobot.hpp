@@ -93,11 +93,11 @@ public:
     void set_actuator_control_mode(int mode_control, int actuator_indx = -1);
 	void writing_mode();
 	vector<vector<float>> move_cartesian(std::vector<std::vector<float>> waypointsDefinition, bool repeat = false,
-					float kTheta_x = 180.0f, float kTheta_y = 0.0f, float kTheta_z = 90.0f);
+					float kTheta_x = 180.0f, float kTheta_y = 0.0f, float kTheta_z = 90.0f, bool joints_provided = false);
 
 	std::vector<std::vector<float>> convert_points_to_angles(std::vector<vector<float>> target_points);
 	
-    std::vector<std::vector<float>> read_csv(const std::string &filename);
+    std::vector<std::vector<float>> read_csv(const std::string &filename, int scale = 1000);
     std::vector<std::vector<float>> convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, 
                                                                         float kTheta_x, float kTheta_y, 
                                                                         float kTheta_z);
@@ -130,6 +130,7 @@ public:
     int create_plot_file(string file_name, vector<vector<float>> data);
     float rms_error(vector<vector<float>> expected, vector<vector<float>> measured);
     vector<vector<float>> generate_performance_file(const std::string& filename, vector<vector<float>>data);
+    void output_joint_values_to_csv(std::vector<std::vector<float>> joint_angles, const std::string& filename);
 
 	FILE *gnu_plot;
 

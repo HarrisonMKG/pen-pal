@@ -403,7 +403,7 @@ void KortexRobot::set_actuator_control_mode(int mode_control, int actuator_indx)
 }
 
 
-std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filename) {
+std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filename, int scale) {
 	std::vector<std::vector<float>> result;
     
 	std::ifstream file(filename);
@@ -422,7 +422,7 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 
 		while (std::getline(ss, cell, ',')) {
 			try {
-				float value = std::stof(cell)/1000;
+				float value = std::stof(cell)/scale;
 				row.push_back(value);
 			} catch (const std::invalid_argument& e) {
 				std::cerr << "Invalid number format in line: " << line << std::endl;
@@ -444,52 +444,52 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
 	vector<vector<float>> waypoints;
 
 	std::ofstream file(filename);
-  vector<string> col_headers = {"seconds","x","y","z"};
+    vector<string> col_headers = {"seconds","x","y","z"};
 
-  //populate headers
-  /*
-  for(int i= 0; i<col_headers.size();i++)
-  {
-    file<<col_headers[i];
-    if(i!=col_headers.size()-1) file << ",";
-  }
-  file << endl;
-  */
-
-  k_api::Base::Pose pose;
-
-  //populate data
-  for(auto angles: data)
-  {
-    file << angles[0] << ','; // Seconds
-    angles.erase(angles.begin());
-    Kinova::Api::Base::JointAngles joint_angles;
-
-    for(auto angle: angles)
+    //populate headers
+    /*
+    for(int i= 0; i<col_headers.size();i++)
     {
-      Kinova::Api::Base::JointAngle* joint_angle = joint_angles.add_joint_angles();
-      joint_angle->set_value(angle);
+        file<<col_headers[i];
+        if(i!=col_headers.size()-1) file << ",";
+    }
+    file << endl;
+    */
+
+    k_api::Base::Pose pose;
+
+    //populate data
+    for(auto angles: data)
+    {
+        file << angles[0] << ','; // Seconds
+        angles.erase(angles.begin());
+        Kinova::Api::Base::JointAngles joint_angles;
+
+        for(auto angle: angles)
+        {
+        Kinova::Api::Base::JointAngle* joint_angle = joint_angles.add_joint_angles();
+        joint_angle->set_value(angle);
+        }
+
+        try
+        {
+        pose = base->ComputeForwardKinematics(joint_angles);
+        waypoints.push_back({angles[0],pose.x()+bais_vector[0],pose.y()+bais_vector[1],pose.z()+bais_vector[2]});
+        file << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
+        }
+        catch(const Kinova::Api::KDetailedException e)
+        {
+        file << "FK failure for the following joint angles:";
+        for(int i= 0; i<joint_angles.joint_angles_size(); i++)
+        {
+            file << "\tJoint\t" << i << " : "<< joint_angles.joint_angles(i).value();
+        }
+        file << endl; 
+        }
     }
 
-    try
-    {
-      pose = base->ComputeForwardKinematics(joint_angles);
-      waypoints.push_back({angles[0],pose.x()+bais_vector[0],pose.y()+bais_vector[1],pose.z()+bais_vector[2]});
-      file << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
-    }
-    catch(const Kinova::Api::KDetailedException e)
-    {
-      file << "FK failure for the following joint angles:";
-      for(int i= 0; i<joint_angles.joint_angles_size(); i++)
-      {
-        file << "\tJoint\t" << i << " : "<< joint_angles.joint_angles(i).value();
-      }
-      file << endl; 
-    }
-  }
-
-	file.close();
-  return waypoints;
+        file.close();
+    return waypoints;
 }
 
 std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, float kTheta_x,
@@ -549,7 +549,7 @@ void KortexRobot::calculate_bias(std::vector<float> first_waypoint) {
 
 
 vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>> waypointsDefinition,bool repeat, float kTheta_x, 
-		float kTheta_y, float kTheta_z)
+		float kTheta_y, float kTheta_z, bool joints_provided)
 {
     // callback function used in Refresh_callback (Not being used in our code thats why its empty)
     auto lambda_fct_callback = [](const Kinova::Api::Error &err, const k_api::BaseCyclic::Feedback data)
@@ -569,9 +569,12 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
     // TESTING PURPOSES: Use the second set of assignments for target_Waypoints and target_joint_angles_IK for 
     //                      general tuning of individual actuators. 
     //                      ALSO: Need to change the ready positions check to move onto new stages and which joints are skipped in RT loop
-    target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
-    target_joint_angles_IK = convert_points_to_angles(target_waypoints);
-    
+    if (joints_provided) {
+        target_joint_angles_IK = waypointsDefinition;
+    } else {
+        target_waypoints = convert_csv_to_cart_wp(waypointsDefinition, kTheta_x, kTheta_y, kTheta_z);
+        target_joint_angles_IK = convert_points_to_angles(target_waypoints);
+    }
     cout << "Using the following Joints: ";
     for(int i = 0; i < actuator_count; i++) {
         cout << "Joint " << i + 1 << ": ";
@@ -614,7 +617,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
         }
 
         int stage = 0;
-        int num_of_targets = target_waypoints.size();
+        int num_of_targets = waypointsDefinition.size();
         std::vector<int> reachPositions(5, 0);
         std::vector<float> temp_pos(5,0);
         measured_angles.push_back(measure_joints(base_feedback)); // Get reference point for start position
@@ -952,3 +955,13 @@ void KortexRobot::output_arm_limits_and_mode()
 }
 
 
+void KortexRobot::output_joint_values_to_csv(std::vector<std::vector<float>> joint_angles, const std::string& filename) {
+	std::ofstream file(filename);
+    vector<string> col_headers = {"seconds","Joint1","joint2","joint3","joint4","joint5"};
+
+    for (auto each_steps: joint_angles) {
+        file << each_steps[0] << ',' << each_steps[1] << ',' << each_steps[2] << ',' << each_steps[3] << ',' << each_steps[4] << endl;
+    }
+
+	file.close();
+}
