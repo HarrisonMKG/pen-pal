@@ -46,12 +46,28 @@ void KortexRobot::plot(vector<vector<float>> expected_data,vector<vector<float>>
   //std::remove(measured_file.c_str());
 }
 
-float KortexRobot::rms_error(vector<vector<float>> expected_data, vector<vector<float>> measured_data)
+vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector<vector<float>> measured_data)
 {
-    float error_sum = 0;
+    vector<float> rms;
+    float spatial_error_sum = 0;
+    float temporal_error_sum = 0;
+    bool first_pass = true;
   // measured_data.size()-1 beacuse last data point seems to have crazy high error
     for(int i = 0; i<measured_data.size()-1; i++)
     {
+      if(!first_pass)
+    {
+      float time_diff_expected = (expected_data[i][0]-expected_data[i-1][0])*1000;
+      float time_diff_measured = (measured_data[i][0]-measured_data[i-1][0]);
+      float time_error = pow((time_diff_expected-time_diff_measured),2); // *1000 to undo error in read_csv scale
+      temporal_error_sum += time_error;
+    }
+    else
+    {
+      first_pass = false;
+    }
+      //cout << "time exp: " << expected_data[i][0]*1000 << " time measure: " << measured_data[i][0];
+
       float x_error = pow((expected_data[i][1] - measured_data[i][1])*1000,2);
       float y_error = pow((expected_data[i][2] - measured_data[i][2])*1000,2);
       float line_error = sqrt(x_error+y_error);
@@ -64,11 +80,16 @@ float KortexRobot::rms_error(vector<vector<float>> expected_data, vector<vector<
       cout << "x| measured:" << measured_data[i][1] << " expected:"<< expected_data[i][1] << " error: "<< x_error << endl;
       */
 
-      float error_sqr = pow(line_error,2);
+      float spatial_error_sqr = pow(line_error,2);
       //cout << "error sum: " << error_sum << endl;
-      error_sum += error_sqr;
+      spatial_error_sum += spatial_error_sqr;
     }
-  float rms = sqrt(error_sum/(measured_data.size()-1));
+  float rms_spatial = sqrt(spatial_error_sum/(measured_data.size()-1));
+  float rms_temporal = sqrt(temporal_error_sum/(measured_data.size()-1));
+  rms.push_back(rms_spatial);
+  rms.push_back(rms_temporal);
+
+
   return rms; 
 }
 
@@ -446,20 +467,44 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
 	std::ofstream file(filename);
     vector<string> col_headers = {"seconds","x","y","z"};
 
-    //populate headers
-    /*
-    for(int i= 0; i<col_headers.size();i++)
+  //populate headers
+  /*
+  for(int i= 0; i<col_headers.size();i++)
+  {
+    file<<col_headers[i];
+    if(i!=col_headers.size()-1) file << ",";
+  }
+  file << endl;
+  */
+
+  k_api::Base::Pose pose;
+
+  //populate data
+  for(auto angles: data)
+  {
+    vector<float> point;
+
+    file << angles[0] << ','; // Seconds
+    point.push_back(angles[0]);
+    angles.erase(angles.begin());
+    Kinova::Api::Base::JointAngles joint_angles;
+
+    for(auto angle: angles)
     {
         file<<col_headers[i];
         if(i!=col_headers.size()-1) file << ",";
     }
     file << endl;
-    */
+    
 
-    k_api::Base::Pose pose;
-
-    //populate data
-    for(auto angles: data)
+    try
+    {
+      pose = base->ComputeForwardKinematics(joint_angles);
+      point.insert(point.end(),{pose.x()+bais_vector[0],pose.y()+bais_vector[1],pose.z()+bais_vector[2]});
+      waypoints.push_back(point);
+      file << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
+    }
+    catch(const Kinova::Api::KDetailedException e)
     {
         file << angles[0] << ','; // Seconds
         angles.erase(angles.begin());
@@ -620,9 +665,9 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
         int num_of_targets = waypointsDefinition.size();
         std::vector<int> reachPositions(5, 0);
         std::vector<float> temp_pos(5,0);
-        measured_angles.push_back(measure_joints(base_feedback)); // Get reference point for start position
-        int start_time = GetTickUs();
-        int end_time;
+        float start_time = GetTickUs();
+        float end_time;
+        measured_angles.push_back(measure_joints(base_feedback,start_time)); // Get reference point for start position
         // Real-time loop
         while(timer_count < (time_duration * 1000))
         {
@@ -729,7 +774,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                     for(int i = 0; i < actuator_count - 1; i++){
                     pids[i].clear_integral();
                     }
-                    measured_angles.push_back(measure_joints(base_feedback));
+                    measured_angles.push_back(measure_joints(base_feedback,start_time));
                     reachPositions = {0,0,0,0,0,0};
                 }
                 // Break out of loop if current target is the last 
@@ -781,10 +826,12 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
   return measured_angles;
 }
 
-vector<float> KortexRobot::measure_joints(k_api::BaseCyclic::Feedback base_feedback)
+vector<float> KortexRobot::measure_joints(k_api::BaseCyclic::Feedback base_feedback, float start_time)
 {
   vector<float> current_joint_angles;
-  current_joint_angles.push_back(GetTickUs());
+  float curr_time =GetTickUs();
+  float time_diff = (curr_time-start_time)/1000000;
+  current_joint_angles.push_back(time_diff);
 
   for(int i=0; i<actuator_count; i++)
   {
