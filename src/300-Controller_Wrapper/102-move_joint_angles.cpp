@@ -13,9 +13,14 @@ int main(int argc, char **argv)
     KortexRobot pen_pal(parsed_args.ip_address,parsed_args.username,parsed_args.password, demo);
     
     pen_pal.get_gain_values(gain_file);
-  
-    vector<vector<float>> expected_waypoints = pen_pal.read_csv(input_coordinates_file, 1);
-    vector<vector<float>> measured_joint_angles = pen_pal.move_cartesian(expected_waypoints, repeat, 180.0, 0.0, 90.0, true);
+    vector<vector<float>> expected_waypoints = pen_pal.read_csv("../coordinates/Harrison_lifted.csv");
+
+    vector<vector<float>> expected_angles = pen_pal.read_csv(input_coordinates_file, 1);
+    vector<vector<float>> measured_joint_angles = pen_pal.move_cartesian(expected_angles, repeat, 180.0, 0.0, 90.0, true);
+    cout << "FIRST :" << expected_waypoints[0][1] << ", " << expected_waypoints[0][2] << ", " << expected_waypoints[0][3] << endl;
+    vector<float> temp = {expected_waypoints[0][1], expected_waypoints[0][2], expected_waypoints[0][3]};
+    
+    pen_pal.calculate_bias(temp);
 
     cout<< "Generating Log File..." << endl;
     vector<vector<float>> measured_waypoints = pen_pal.generate_performance_file("measured_waypoints.csv",measured_joint_angles);
