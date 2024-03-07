@@ -51,10 +51,21 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
     vector<float> rms;
     float spatial_error_sum = 0;
     float temporal_error_sum = 0;
+    bool first_pass = true;
   // measured_data.size()-1 beacuse last data point seems to have crazy high error
     for(int i = 0; i<measured_data.size()-1; i++)
     {
-      float time_error = pow((expected_data[i][0]*1000 - measured_data[i][0]),2); // *1000 to undo error in read_csv scale
+      if(!first_pass)
+    {
+      float time_diff_expected = (expected_data[i][0]-expected_data[i-1][0])*1000;
+      float time_diff_measured = (measured_data[i][0]-measured_data[i-1][0]);
+      float time_error = pow((time_diff_expected-time_diff_measured),2); // *1000 to undo error in read_csv scale
+      temporal_error_sum += time_error;
+    }
+    else
+    {
+      first_pass = false;
+    }
       //cout << "time exp: " << expected_data[i][0]*1000 << " time measure: " << measured_data[i][0];
 
       float x_error = pow((expected_data[i][1] - measured_data[i][1])*1000,2);
@@ -72,7 +83,6 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       float spatial_error_sqr = pow(line_error,2);
       //cout << "error sum: " << error_sum << endl;
       spatial_error_sum += spatial_error_sqr;
-      temporal_error_sum += time_error;
     }
   float rms_spatial = sqrt(spatial_error_sum/(measured_data.size()-1));
   float rms_temporal = sqrt(temporal_error_sum/(measured_data.size()-1));
