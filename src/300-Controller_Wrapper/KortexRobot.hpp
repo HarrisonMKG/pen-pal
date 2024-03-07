@@ -128,7 +128,7 @@ public:
 	int start_plot();
     void plot(vector<vector<float>> expected_data,vector<vector<float>> measured_data);
     int create_plot_file(string file_name, vector<vector<float>> data);
-    float rms_error(vector<vector<float>> expected, vector<vector<float>> measured);
+    vector<float> rms_error(vector<vector<float>> expected, vector<vector<float>> measured);
     vector<vector<float>> generate_performance_file(const std::string& filename, vector<vector<float>>data);
 
 	FILE *gnu_plot;

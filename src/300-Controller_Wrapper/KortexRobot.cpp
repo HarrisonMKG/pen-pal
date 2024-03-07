@@ -46,12 +46,17 @@ void KortexRobot::plot(vector<vector<float>> expected_data,vector<vector<float>>
   //std::remove(measured_file.c_str());
 }
 
-float KortexRobot::rms_error(vector<vector<float>> expected_data, vector<vector<float>> measured_data)
+vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector<vector<float>> measured_data)
 {
-    float error_sum = 0;
+    vector<float> rms;
+    float spatial_error_sum = 0;
+    float temporal_error_sum = 0;
   // measured_data.size()-1 beacuse last data point seems to have crazy high error
     for(int i = 0; i<measured_data.size()-1; i++)
     {
+      float time_error = pow((expected_data[i][0]*1000 - measured_data[i][0]),2); // *1000 to undo error in read_csv scale
+      cout << "time exp: " << expected_data[i][0]*1000 << " time measure: " << measured_data[i][0];
+
       float x_error = pow((expected_data[i][1] - measured_data[i][1])*1000,2);
       float y_error = pow((expected_data[i][2] - measured_data[i][2])*1000,2);
       float line_error = sqrt(x_error+y_error);
@@ -64,11 +69,17 @@ float KortexRobot::rms_error(vector<vector<float>> expected_data, vector<vector<
       cout << "x| measured:" << measured_data[i][1] << " expected:"<< expected_data[i][1] << " error: "<< x_error << endl;
       */
 
-      float error_sqr = pow(line_error,2);
+      float spatial_error_sqr = pow(line_error,2);
       //cout << "error sum: " << error_sum << endl;
-      error_sum += error_sqr;
+      spatial_error_sum += spatial_error_sqr;
+      temporal_error_sum += time_error;
     }
-  float rms = sqrt(error_sum/(measured_data.size()-1));
+  float rms_spatial = sqrt(spatial_error_sum/(measured_data.size()-1));
+  float rms_temporal = sqrt(temporal_error_sum/(measured_data.size()-1));
+  rms.push_back(rms_spatial);
+  rms.push_back(rms_temporal);
+
+
   return rms; 
 }
 
@@ -422,7 +433,7 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 
 		while (std::getline(ss, cell, ',')) {
 			try {
-				float value = std::stof(cell)/1000;
+				float value = std::stof(cell)/1000;// will make scale down seconds so needs to be handled
 				row.push_back(value);
 			} catch (const std::invalid_argument& e) {
 				std::cerr << "Invalid number format in line: " << line << std::endl;
@@ -461,7 +472,10 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
   //populate data
   for(auto angles: data)
   {
+    vector<float> point;
+
     file << angles[0] << ','; // Seconds
+    point.push_back(angles[0]);
     angles.erase(angles.begin());
     Kinova::Api::Base::JointAngles joint_angles;
 
@@ -474,7 +488,8 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
     try
     {
       pose = base->ComputeForwardKinematics(joint_angles);
-      waypoints.push_back({angles[0],pose.x()+bais_vector[0],pose.y()+bais_vector[1],pose.z()+bais_vector[2]});
+      point.insert(point.end(),{pose.x()+bais_vector[0],pose.y()+bais_vector[1],pose.z()+bais_vector[2]});
+      waypoints.push_back(point);
       file << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
     }
     catch(const Kinova::Api::KDetailedException e)

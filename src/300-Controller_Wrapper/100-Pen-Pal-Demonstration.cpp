@@ -21,8 +21,9 @@ int main(int argc, char **argv)
     vector<vector<float>> measured_waypoints = pen_pal.generate_performance_file("measured_waypoints.csv",measured_joint_angles);
     cout<< "Calculating Plot:" <<endl;
     pen_pal.plot(expected_waypoints,measured_waypoints);
-    float rms = pen_pal.rms_error(expected_waypoints,measured_waypoints); 
-    cout << "RMS Error:\t"<< rms <<endl;
+    vector<float> rms = pen_pal.rms_error(expected_waypoints,measured_waypoints); 
+    cout << "Spatial RMS Error:\t"<< rms[0] <<endl;
+    cout << "Temporal RMS Error:\t"<< rms[1] <<endl;
 
     return 0;
 }
