@@ -462,10 +462,10 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 }
 
 vector<vector<float>> KortexRobot::generate_performance_file(const std::string& filename, vector<vector<float>> data) {
-	vector<vector<float>> waypoints;
+		vector<vector<float>> waypoints;
 
 	std::ofstream file(filename);
-    vector<string> col_headers = {"seconds","x","y","z"};
+  vector<string> col_headers = {"seconds","x","y","z"};
 
   //populate headers
   /*
@@ -491,11 +491,9 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
 
     for(auto angle: angles)
     {
-        file<<col_headers[i];
-        if(i!=col_headers.size()-1) file << ",";
+      Kinova::Api::Base::JointAngle* joint_angle = joint_angles.add_joint_angles();
+      joint_angle->set_value(angle);
     }
-    file << endl;
-    
 
     try
     {
@@ -506,35 +504,17 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
     }
     catch(const Kinova::Api::KDetailedException e)
     {
-        file << angles[0] << ','; // Seconds
-        angles.erase(angles.begin());
-        Kinova::Api::Base::JointAngles joint_angles;
-
-        for(auto angle: angles)
-        {
-        Kinova::Api::Base::JointAngle* joint_angle = joint_angles.add_joint_angles();
-        joint_angle->set_value(angle);
-        }
-
-        try
-        {
-        pose = base->ComputeForwardKinematics(joint_angles);
-        waypoints.push_back({angles[0],pose.x()+bais_vector[0],pose.y()+bais_vector[1],pose.z()+bais_vector[2]});
-        file << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
-        }
-        catch(const Kinova::Api::KDetailedException e)
-        {
-        file << "FK failure for the following joint angles:";
-        for(int i= 0; i<joint_angles.joint_angles_size(); i++)
-        {
-            file << "\tJoint\t" << i << " : "<< joint_angles.joint_angles(i).value();
-        }
-        file << endl; 
-        }
+      file << "FK failure for the following joint angles:";
+      for(int i= 0; i<joint_angles.joint_angles_size(); i++)
+      {
+        file << "\tJoint\t" << i << " : "<< joint_angles.joint_angles(i).value();
+      }
+      file << endl; 
     }
+  }
 
-        file.close();
-    return waypoints;
+	file.close();
+  return waypoints;
 }
 
 std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, float kTheta_x,
