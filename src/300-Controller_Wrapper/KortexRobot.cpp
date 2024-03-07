@@ -617,9 +617,9 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
         int num_of_targets = target_waypoints.size();
         std::vector<int> reachPositions(5, 0);
         std::vector<float> temp_pos(5,0);
-        measured_angles.push_back(measure_joints(base_feedback)); // Get reference point for start position
-        int start_time = GetTickUs();
-        int end_time;
+        float start_time = GetTickUs();
+        float end_time;
+        measured_angles.push_back(measure_joints(base_feedback,start_time)); // Get reference point for start position
         // Real-time loop
         while(timer_count < (time_duration * 1000))
         {
@@ -726,7 +726,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                     for(int i = 0; i < actuator_count - 1; i++){
                     pids[i].clear_integral();
                     }
-                    measured_angles.push_back(measure_joints(base_feedback));
+                    measured_angles.push_back(measure_joints(base_feedback,start_time));
                     reachPositions = {0,0,0,0,0,0};
                 }
                 // Break out of loop if current target is the last 
@@ -778,10 +778,12 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
   return measured_angles;
 }
 
-vector<float> KortexRobot::measure_joints(k_api::BaseCyclic::Feedback base_feedback)
+vector<float> KortexRobot::measure_joints(k_api::BaseCyclic::Feedback base_feedback, float start_time)
 {
   vector<float> current_joint_angles;
-  current_joint_angles.push_back(GetTickUs());
+  float curr_time =GetTickUs();
+  float time_diff = (curr_time-start_time)/1000000;
+  current_joint_angles.push_back(time_diff);
 
   for(int i=0; i<actuator_count; i++)
   {
