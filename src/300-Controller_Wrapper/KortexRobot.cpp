@@ -537,8 +537,9 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
     }
     lifted_thresh /= csv_points.size();
     cout<<lifted_thresh<<endl;
-    for (auto& point : csv_points)
+    for (int i = 0; i<csv_points.size(); i++)
 	{
+        auto& point = csv_points[i];
 		if(point.size() > 3){
 			point.erase(point.begin());// remove seconds value for IR sensor
 		}
@@ -553,8 +554,18 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
             point[2] = altered_origin[2]+0.004;
         }
         else{
-        point[2] =  altered_origin[2];
+            point[2] =  altered_origin[2];
         }
+
+        // Check if point is outside of boundaries provided (X_MIN/MAX, Y_MIN/MAX)
+        if (point[0] > X_MAX || point[0] < X_MIN || point[1] > Y_MAX || point[1] < Y_MIN) {
+            cout << "The following point (index : " << i << ") is found outside of the set Boundaries imposed on the Robot after the initial bias is applied" <<endl;
+            cout << "Calculated: \tX: " << point[0] << "\tY: " << point[1] << "\tZ: " << point[2] << endl;
+            cout << "Move the starting point of robot arm over so the entire trajectory fits within the acceptable bounds. Unless the overall trajectory is too large" <<endl;
+            cout << "BOUNDARY Values: " << "\tX_min: " << X_MIN << "\tX_max: " << X_MAX << "\tY_min: " << Y_MIN << "\tY_min: " << Y_MIN ;
+            return {{}};
+        }
+
 		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
 	}
     if (verbose) {
