@@ -41,6 +41,7 @@
 #endif
 #include <time.h>
 
+
 #define PORT 10000
 #define PORT_REAL_TIME 10001
 #define DURATION 100             // Network timeout (seconds)
@@ -124,7 +125,7 @@ public:
 	const vector<float> surface_cords = {0.455,0,0.115};
 	void find_paper();
     // Plotting and performance functions
-    vector<float> measure_joints(k_api::BaseCyclic::Feedback base_feedback, float start_time);
+    vector<float> measure_joints(k_api::BaseCyclic::Feedback base_feedback, int64_t start_time);
 	int start_plot();
     void plot(vector<vector<float>> expected_data,vector<vector<float>> measured_data);
     int create_plot_file(string file_name, vector<vector<float>> data);

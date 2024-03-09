@@ -52,20 +52,29 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
     float spatial_error_sum = 0;
     float velocity_error_sum = 0;
     bool first_pass = true;
-  // measured_data.size()-1 beacuse last data point seems to have crazy high error
+    float velocity_average_measured;
+    float velocity_average_expected;
+  // measured_data.size()-1 because last data point seems to have crazy high error
     for(int i = 0; i<measured_data.size()-1; i++)
     {
       if(!first_pass)
     {
       float time_diff_expected = (expected_data[i][0]-expected_data[i-1][0])*1000; // *1000 to undo error in read_csv scale
-      float x_diff_expected = (expected_data[i][1]-expected_data[i-1][1])*1000;
-      float y_diff_expected = (expected_data[i][2]-expected_data[i-1][2])*1000;
-      float velocity_expected = (sqrt(y_diff_expected+x_diff_expected)/time_diff_expected);
+      float x_diff_expected = (expected_data[i][1]-expected_data[i-1][1]);
+      float y_diff_expected = (expected_data[i][2]-expected_data[i-1][2]);
+      float velocity_expected = (sqrt(pow(y_diff_expected,2) + pow(x_diff_expected,2))/time_diff_expected);
 
       float time_diff_measured = (measured_data[i][0]-measured_data[i-1][0]);
       float x_diff_measured = (measured_data[i][1]-measured_data[i-1][1]);
       float y_diff_measured = (measured_data[i][2]-measured_data[i-1][2]);
-      float velocity_measured = (sqrt(y_diff_measured + x_diff_measured)/time_diff_measured);
+      float velocity_measured = (sqrt(pow(y_diff_measured,2) + pow(x_diff_measured,2))/time_diff_measured);
+
+      velocity_average_measured += velocity_measured;
+      velocity_average_expected += velocity_expected;
+      
+      cout<< "MEASURED TIME: "<< setprecision(8) << measured_data[i][0]<<" "<< setprecision(8) <<measured_data[i-1][0] <<" "<< setprecision(8) <<(measured_data[i][0]-measured_data[i-1][0]) << " || EXPECTED TIME: "<< setprecision(8) << expected_data[i][0]*1000<<" "<< setprecision(8) <<expected_data[i-1][0]*1000 <<" "<< setprecision(8) <<(expected_data[i][0]-expected_data[i-1][0])*1000<<endl;
+      //cout<<"EXPECTED X DIFF: " << setprecision(5) << x_diff_expected << " EXPECTED Y DIFF: " << setprecision(5) << y_diff_expected << " MEASURED X DIFF: " << setprecision(5) << x_diff_measured <<    " MEASURED Y DIFF: " << setprecision(5) << y_diff_measured << endl;
+      cout<<"VELOCITY EXPECTED: " << setprecision(5) << velocity_expected <<" VELOCITY MEASURED: " << setprecision(5) << velocity_measured <<endl;
 
       float velocity_error = pow((velocity_expected - velocity_measured),2);
       velocity_error_sum += velocity_error;
@@ -92,6 +101,12 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       //cout << "error sum: " << error_sum << endl;
       spatial_error_sum += spatial_error_sqr;
     }
+  velocity_average_expected /= measured_data.size()-1;
+  velocity_average_measured /= measured_data.size()-1;
+
+  cout << "AVERAGE MEASURED VELOCITY: " << setprecision(5) << velocity_average_measured << endl;
+  cout << "AVERAGE EXPECTED VELOCITY: " << setprecision(5) << velocity_average_expected << endl;
+  
   float rms_spatial = sqrt(spatial_error_sum/(measured_data.size()-1));
   float rms_velocity = sqrt(velocity_error_sum/(measured_data.size()-1));
   rms.push_back(rms_spatial);
@@ -519,6 +534,7 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
       }
       file << endl; 
     }
+    //std::cout<< "COORDINATES: " << pose.x()+bais_vector[0] << " " << pose.y()+bais_vector[1] << " " << pose.z()+bais_vector[2] << " " <<endl;
   }
 
 	file.close();
@@ -653,8 +669,8 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
         int num_of_targets = waypointsDefinition.size();
         std::vector<int> reachPositions(5, 0);
         std::vector<float> temp_pos(5,0);
-        float start_time = GetTickUs();
-        float end_time;
+        int64_t start_time = GetTickUs();
+        int64_t end_time;
         measured_angles.push_back(measure_joints(base_feedback,start_time)); // Get reference point for start position
         // Real-time loop
         while(timer_count < (time_duration * 1000))
@@ -814,14 +830,14 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
   return measured_angles;
 }
 
-vector<float> KortexRobot::measure_joints(k_api::BaseCyclic::Feedback base_feedback, float start_time)
+vector<float> KortexRobot::measure_joints(k_api::BaseCyclic::Feedback base_feedback, int64_t start_time)
 {
   vector<float> current_joint_angles;
-  float curr_time =GetTickUs();
-  float time_diff = (curr_time-start_time)/1000000;
+  int64_t curr_time = GetTickUs();
+  float time_diff = (curr_time-start_time)/(float)1000000;
   current_joint_angles.push_back(time_diff);
 
-  for(int i=0; i<actuator_count; i++)
+  for(int i=0; i<actuator_count; i++)   
   {
     current_joint_angles.push_back(base_feedback.actuators(i).position());
   }
