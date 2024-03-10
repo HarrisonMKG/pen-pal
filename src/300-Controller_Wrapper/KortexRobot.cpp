@@ -810,7 +810,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                 last = GetTickUs();
             }
         }
-        cout<<"amount of time it took was:"<< (end_time-start_time)/1000000<< 's'<<endl;
+        cout<<"amount of time it took was:"<< setprecision(6) << (end_time-start_time)/1000000.0<< 's'<<endl;
     }
     catch (k_api::KDetailedException& ex)
     {
