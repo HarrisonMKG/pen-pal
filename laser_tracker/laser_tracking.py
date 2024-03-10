@@ -1,6 +1,8 @@
 import cv2
 import pandas as pd
 import time
+import numpy as np
+
 
 # Initialize the list to store coordinates and timestamps
 data = []
@@ -21,13 +23,18 @@ def lin_interporlate(start_point, end_point, num_points):
         data.append([tmp_time, tmp_x, tmp_y, faux_z])
 
     return
-    
+
+def moving_average(data, window_size):
+    cumsum = np.cumsum(np.insert(data, 0, 0)) 
+    return (cumsum[window_size:] - cumsum[:-window_size]) / window_size
+
 def track_laser(video_path, output_csv):
+    global data
     # Open the video
     cap = cv2.VideoCapture(video_path)
     faux_z = 0.02
     first_measure = True
-    num_points_interp = 10
+    num_points_interp = 2
     
     # Check if video opened successfully
     if not cap.isOpened():
@@ -42,10 +49,6 @@ def track_laser(video_path, output_csv):
         if ret:
             # Convert to HSV color space
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
-            
-            # Define range of red color in HSV
-            lower_red = (0, 120, 70)
-            upper_red = (10, 255, 255)
             
             # Define range of pink color in HSV
             lower_pink = (140, 50, 50)
@@ -79,24 +82,36 @@ def track_laser(video_path, output_csv):
                     
                     # Optionally, visualize the tracking
                     cv2.circle(frame, (cX, cY), 5, (255, 0, 0), -1)
-                    cv2.imshow('Frame', frame)
                     
-                    # Press Q on keyboard to exit
-                    if cv2.waitKey(25) & 0xFF == ord('q'):
-                        break
                 else:
                     print("No laser detected.")
+            
+            # Display the frame
+            cv2.imshow('Frame', frame)
+            
+            # Press Q on keyboard to exit
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
         else:
             break
 
-    # When everything done, release the video capture object
+    # Release the video capture object
     cap.release()
     cv2.destroyAllWindows()
     
-    # Save the data to a CSV file
+    # Applying moving average filter to smooth the data
+    time_data = [d[0] for d in data]
+    smoothed_time_data = moving_average(time_data, 3)  # Adjust window size as needed
+    x_data = [d[1] for d in data]
+    smoothed_x_data = moving_average(x_data, 3)  # Adjust window size as needed
+    y_data = [d[2] for d in data]
+    smoothed_y_data = moving_average(y_data, 3)  # Adjust window size as needed
+
+    # Save the smoothed data to a CSV file
+    smoothed_data = list(zip(smoothed_time_data, smoothed_x_data, smoothed_y_data))
     df = pd.DataFrame(data) 
-    df.to_csv(output_csv, index=False, header=False)
-    print(f"Data saved to {output_csv}")
+    df.to_csv(output_csv, index=False, header = None)
+    print(f"Smoothed data saved to {output_csv}")
 
 # Example usage
-track_laser('./laser_test.mp4', 'laser_coordinates.csv')
+track_laser('./laser_check.mp4', 'laser_coordinates.csv')
