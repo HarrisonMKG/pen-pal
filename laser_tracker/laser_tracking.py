@@ -47,8 +47,11 @@ def track_laser(video_path, output_csv):
             lower_red = (0, 120, 70)
             upper_red = (10, 255, 255)
             
-            # Threshold the HSV image to get only red colors
-            mask = cv2.inRange(hsv, lower_red, upper_red)
+            # Define range of pink color in HSV
+            lower_pink = (140, 50, 50)
+            upper_pink = (170, 255, 255)
+            # Threshold the HSV image to get only pink colors
+            mask = cv2.inRange(hsv, lower_pink, upper_pink)
             
             # Find contours
             contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
