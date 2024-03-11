@@ -13,6 +13,7 @@
 *
 */
 #include "KortexRobot.hpp"
+#include <cstdint>
 #include <sstream>
 
 namespace k_api = Kinova::Api;
@@ -59,14 +60,14 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       if(!first_pass)
     {
       float time_diff_expected = (expected_data[i][0]-expected_data[i-1][0])*1000; // *1000 to undo error in read_csv scale
-      float x_diff_expected = (expected_data[i][1]-expected_data[i-1][1])*1000;
-      float y_diff_expected = (expected_data[i][2]-expected_data[i-1][2])*1000;
-      float velocity_expected = (sqrt(y_diff_expected+x_diff_expected)/time_diff_expected);
+      float x_diff_expected = (expected_data[i][1]-expected_data[i-1][1]);
+      float y_diff_expected = (expected_data[i][2]-expected_data[i-1][2]);
+      float velocity_expected = (sqrt(pow(y_diff_expected,2)+pow(x_diff_expected,2))/time_diff_expected);
 
       float time_diff_measured = (measured_data[i][0]-measured_data[i-1][0]);
       float x_diff_measured = (measured_data[i][1]-measured_data[i-1][1]);
       float y_diff_measured = (measured_data[i][2]-measured_data[i-1][2]);
-      float velocity_measured = (sqrt(y_diff_measured + x_diff_measured)/time_diff_measured);
+      float velocity_measured = (sqrt(pow(y_diff_measured,2) + pow(x_diff_measured,2))/time_diff_measured);
 
       float velocity_error = pow((velocity_expected - velocity_measured),2);
       velocity_error_sum += velocity_error;
@@ -656,8 +657,8 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
         int num_of_targets = waypointsDefinition.size();
         std::vector<int> reachPositions(5, 0);
         std::vector<float> temp_pos(5,0);
-        float start_time = GetTickUs();
-        float end_time;
+        int64_t start_time = GetTickUs();
+        int64_t end_time;
         measured_angles.push_back(measure_joints(base_feedback,start_time)); // Get reference point for start position
         // Real-time loop
         while(timer_count < (time_duration * 1000))
@@ -817,11 +818,11 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
   return measured_angles;
 }
 
-vector<float> KortexRobot::measure_joints(k_api::BaseCyclic::Feedback base_feedback, float start_time)
+vector<float> KortexRobot::measure_joints(k_api::BaseCyclic::Feedback base_feedback, int64_t start_time)
 {
   vector<float> current_joint_angles;
-  float curr_time =GetTickUs();
-  float time_diff = (curr_time-start_time)/1000000;
+  int64_t curr_time =GetTickUs();
+  int64_t time_diff = (curr_time-start_time)/(int64_t)1000000;
   current_joint_angles.push_back(time_diff);
 
   for(int i=0; i<actuator_count; i++)
@@ -849,7 +850,7 @@ void KortexRobot::printException(k_api::KDetailedException& ex)
     std::cout << "Error sub-code string equivalent: " << k_api::SubErrorCodes_Name(k_api::SubErrorCodes(error_info.error_sub_code())) << std::endl;
 }
 
-static std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vector<std::vector<float>> target_points)
+std::vector<std::vector<float>> KortexRobot::convert_points_to_angles(std::vector<std::vector<float>> target_points)
 {   
     // Function take an array of target points in format (x,y,z,theta_x,theta_y,theta_z)
     // Feeds it into the Kinova IK function that will spit out the target joint angles 

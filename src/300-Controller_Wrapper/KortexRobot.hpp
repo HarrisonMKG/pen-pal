@@ -99,7 +99,7 @@ public:
 	vector<vector<float>> move_cartesian(std::vector<std::vector<float>> waypointsDefinition, bool repeat = false,
 					float kTheta_x = 180.0f, float kTheta_y = 0.0f, float kTheta_z = 90.0f, bool joints_provided = false);
 
-	static std::vector<std::vector<float>> convert_points_to_angles(std::vector<vector<float>> target_points);
+	std::vector<std::vector<float>> convert_points_to_angles(std::vector<vector<float>> target_points);
 	
     std::vector<std::vector<float>> read_csv(const std::string &filename, int scale = 1000);
     std::vector<std::vector<float>> convert_csv_to_cart_wp(std::vector<std::vector<float>> csv_points, 
@@ -128,7 +128,7 @@ public:
 	const vector<float> surface_cords = {0.455,0,0.115};
 	void find_paper();
     // Plotting and performance functions
-    vector<float> measure_joints(k_api::BaseCyclic::Feedback base_feedback, float start_time);
+    vector<float> measure_joints(k_api::BaseCyclic::Feedback base_feedback, int64_t start_time);
 	int start_plot();
     void plot(vector<vector<float>> expected_data,vector<vector<float>> measured_data);
     int create_plot_file(string file_name, vector<vector<float>> data);
