@@ -13,6 +13,7 @@
 *
 */
 #include "KortexRobot.hpp"
+#include <sstream>
 
 namespace k_api = Kinova::Api;
 
@@ -469,21 +470,11 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 	return result;
 }
 
-vector<vector<float>> KortexRobot::generate_performance_file(const std::string& filename, vector<vector<float>> data) {
+vector<vector<float>> KortexRobot::generate_log(const std::string& filename, vector<vector<float>> data) {
 		vector<vector<float>> waypoints;
 
 	std::ofstream file(filename);
-  vector<string> col_headers = {"seconds","x","y","z"};
-
-  //populate headers
-  /*
-  for(int i= 0; i<col_headers.size();i++)
-  {
-    file<<col_headers[i];
-    if(i!=col_headers.size()-1) file << ",";
-  }
-  file << endl;
-  */
+  std::ostringstream buffer; 
 
   k_api::Base::Pose pose;
 
@@ -492,7 +483,7 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
   {
     vector<float> point;
 
-    file << angles[0] << ','; // Seconds
+    buffer << angles[0] << ','; // Seconds
     point.push_back(angles[0]);
     angles.erase(angles.begin());
     Kinova::Api::Base::JointAngles joint_angles;
@@ -508,19 +499,20 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
       pose = base->ComputeForwardKinematics(joint_angles);
       point.insert(point.end(),{pose.x()+bais_vector[0],pose.y()+bais_vector[1],pose.z()+bais_vector[2]});
       waypoints.push_back(point);
-      file << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
+      buffer << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
     }
     catch(const Kinova::Api::KDetailedException e)
     {
-      file << "FK failure for the following joint angles:";
+      buffer << "FK failure for the following joint angles:";
       for(int i= 0; i<joint_angles.joint_angles_size(); i++)
       {
-        file << "\tJoint\t" << i << " : "<< joint_angles.joint_angles(i).value();
+        buffer << "\tJoint\t" << i << " : "<< joint_angles.joint_angles(i).value();
       }
-      file << endl; 
+      buffer << endl; 
     }
   }
 
+  file << buffer.str();
 	file.close();
   return waypoints;
 }

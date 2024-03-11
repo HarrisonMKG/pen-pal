@@ -133,7 +133,7 @@ public:
     void plot(vector<vector<float>> expected_data,vector<vector<float>> measured_data);
     int create_plot_file(string file_name, vector<vector<float>> data);
     vector<float> rms_error(vector<vector<float>> expected, vector<vector<float>> measured);
-    vector<vector<float>> generate_performance_file(const std::string& filename, vector<vector<float>>data);
+    vector<vector<float>> generate_log(const std::string& filename, vector<vector<float>>data);
     void output_joint_values_to_csv(std::vector<std::vector<float>> joint_angles, const std::string& filename);
 
 	FILE *gnu_plot;
