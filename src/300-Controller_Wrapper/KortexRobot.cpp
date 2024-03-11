@@ -465,17 +465,6 @@ vector<vector<float>> KortexRobot::generate_log(const std::string& filename, vec
 		vector<vector<float>> waypoints;
 
 	std::ofstream file(filename);
-  vector<string> col_headers = {"seconds","x","y","z"};
-
-  //populate headers
-  /*
-  for(int i= 0; i<col_headers.size();i++)
-  {
-    file<<col_headers[i];
-    if(i!=col_headers.size()-1) file << ",";
-  }
-  file << endl;
-  */
 
   k_api::Base::Pose pose;
 
