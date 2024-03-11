@@ -13,6 +13,7 @@
 *
 */
 #include "KortexRobot.hpp"
+#include <sstream>
 
 namespace k_api = Kinova::Api;
 
@@ -465,6 +466,7 @@ vector<vector<float>> KortexRobot::generate_log(const std::string& filename, vec
 		vector<vector<float>> waypoints;
 
 	std::ofstream file(filename);
+  std::ostringstream buffer; 
 
   k_api::Base::Pose pose;
 
@@ -473,7 +475,7 @@ vector<vector<float>> KortexRobot::generate_log(const std::string& filename, vec
   {
     vector<float> point;
 
-    file << angles[0] << ','; // Seconds
+    buffer << angles[0] << ','; // Seconds
     point.push_back(angles[0]);
     angles.erase(angles.begin());
     Kinova::Api::Base::JointAngles joint_angles;
@@ -489,19 +491,20 @@ vector<vector<float>> KortexRobot::generate_log(const std::string& filename, vec
       pose = base->ComputeForwardKinematics(joint_angles);
       point.insert(point.end(),{pose.x()+bais_vector[0],pose.y()+bais_vector[1],pose.z()+bais_vector[2]});
       waypoints.push_back(point);
-      file << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
+      buffer << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
     }
     catch(const Kinova::Api::KDetailedException e)
     {
-      file << "FK failure for the following joint angles:";
+      buffer << "FK failure for the following joint angles:";
       for(int i= 0; i<joint_angles.joint_angles_size(); i++)
       {
-        file << "\tJoint\t" << i << " : "<< joint_angles.joint_angles(i).value();
+        buffer << "\tJoint\t" << i << " : "<< joint_angles.joint_angles(i).value();
       }
-      file << endl; 
+      buffer << endl; 
     }
   }
 
+  file << buffer.str();
 	file.close();
   return waypoints;
 }
