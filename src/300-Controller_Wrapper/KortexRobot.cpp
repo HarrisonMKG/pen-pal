@@ -461,7 +461,7 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 	return result;
 }
 
-vector<vector<float>> KortexRobot::generate_performance_file(const std::string& filename, vector<vector<float>> data) {
+vector<vector<float>> KortexRobot::generate_log(const std::string& filename, vector<vector<float>> data) {
 		vector<vector<float>> waypoints;
 
 	std::ofstream file(filename);
