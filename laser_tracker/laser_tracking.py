@@ -1,33 +1,19 @@
 import cv2
 import pandas as pd
 import time
+import numpy as np
+import statsmodels.api as sm
 
 # Initialize the list to store coordinates and timestamps
 data = []
 
 # Function to track the laser
-def lin_interporlate(start_point, end_point, num_points):
-    delta_time = (end_point[0] - start_point[0])/(num_points)
-    delta_x = (end_point[1] - start_point[1])/num_points
-    delta_y = (end_point[2] - start_point[2])/num_points
-    faux_z = 0.02
-    
-    for i in range(1,num_points):
-        tmp_time = start_point[0] + delta_time * i 
-        tmp_x = start_point[1] + delta_x * i
-        tmp_y = start_point[2] + delta_y * i
-        print(f"time = {start_point} + {delta_time} = {tmp_time}")
-        print(f"x = {start_point} + {delta_x} = {tmp_time}")
-        data.append([tmp_time, tmp_x, tmp_y, faux_z])
-
-    return
-    
 def track_laser(video_path, output_csv):
+    global data
     # Open the video
     cap = cv2.VideoCapture(video_path)
     faux_z = 0.02
     first_measure = True
-    num_points_interp = 10
     
     # Check if video opened successfully
     if not cap.isOpened():
@@ -43,12 +29,11 @@ def track_laser(video_path, output_csv):
             # Convert to HSV color space
             hsv = cv2.cvtColor(frame, cv2.COLOR_BGR2HSV)
             
-            # Define range of red color in HSV
-            lower_red = (0, 120, 70)
-            upper_red = (10, 255, 255)
-            
-            # Threshold the HSV image to get only red colors
-            mask = cv2.inRange(hsv, lower_red, upper_red)
+            # Define range of pink color in HSV
+            lower_pink = (140, 50, 50)
+            upper_pink = (170, 255, 255)
+            # Threshold the HSV image to get only pink colors
+            mask = cv2.inRange(hsv, lower_pink, upper_pink)
             
             # Find contours
             contours, _ = cv2.findContours(mask, cv2.RETR_TREE, cv2.CHAIN_APPROX_SIMPLE)
@@ -58,41 +43,48 @@ def track_laser(video_path, output_csv):
                 largest_contour = max(contours, key=cv2.contourArea)
                 M = cv2.moments(largest_contour)
                 if M["m00"] != 0:
-                    cX = int(M["m10"] / M["m00"])
-                    cY = int(M["m01"] / M["m00"])
+                    scaling_factor = 1  # Adjust this scaling factor as needed
+                    cX = int(M["m10"] / M["m00"] * scaling_factor)
+                    cY = int(M["m01"] / M["m00"] * scaling_factor)
                     # Save the timestamp and coordinates
                     curr_time = round(time.time() * 1000)
                     if first_measure: 
                         time_ref = round(time.time() * 1000)
-                        time_elapsed = (curr_time -time_ref)/1000
+                        time_elapsed = (curr_time - time_ref) / 1000
                         first_measure = False
                     else:
-                        time_elapsed = (curr_time -time_ref)/1000
-                        lin_interporlate(data[-1], [time_elapsed, cX, cY, faux_z], num_points_interp)
-
-                    data.append([time_elapsed, cX, cY, faux_z])
-                    count += 1
+                        time_elapsed = (curr_time - time_ref) / 1000
+                        data.append([time_elapsed, cX, cY, faux_z])
+                        count += 1
                     
                     # Optionally, visualize the tracking
                     cv2.circle(frame, (cX, cY), 5, (255, 0, 0), -1)
-                    cv2.imshow('Frame', frame)
                     
-                    # Press Q on keyboard to exit
-                    if cv2.waitKey(25) & 0xFF == ord('q'):
-                        break
                 else:
                     print("No laser detected.")
+            
+            # Display the frame
+            cv2.imshow('Frame', frame)
+            
+            # Press Q on keyboard to exit
+            if cv2.waitKey(25) & 0xFF == ord('q'):
+                break
         else:
             break
 
-    # When everything done, release the video capture object
+    # Release the video capture object
     cap.release()
     cv2.destroyAllWindows()
-    
-    # Save the data to a CSV file
-    df = pd.DataFrame(data) 
-    df.to_csv(output_csv, index=False, header=False)
-    print(f"Data saved to {output_csv}")
+
+    # Applying LOWESS smoothing to the data
+    df = pd.DataFrame(data, columns=['Time', 'X', 'Y', 'Faux_Z'])
+    frac = 0.1  # Fraction of data points to use in each local regression
+    df['X_smoothed'] = sm.nonparametric.lowess(df['X'], df['Time'], frac=frac, return_sorted=False)
+    df['Y_smoothed'] = sm.nonparametric.lowess(df['Y'], df['Time'], frac=frac, return_sorted=False)
+
+    # Save the smoothed data to a CSV file
+    df[['Time','X_smoothed', 'Y_smoothed', 'Faux_Z']].to_csv(output_csv, index=False, header=None)
+    print(f"Smoothed data saved to {output_csv}")
 
 # Example usage
-track_laser('./laser_test.mp4', 'laser_coordinates.csv')
+track_laser('./laser_check.mp4', 'laser_coordinates.csv')

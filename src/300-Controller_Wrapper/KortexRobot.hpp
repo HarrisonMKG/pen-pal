@@ -45,6 +45,10 @@
 #define PORT 10000
 #define PORT_REAL_TIME 10001
 #define DURATION 100             // Network timeout (seconds)
+#define X_MIN 0.26            // Network timeout (seconds)
+#define X_MAX 0.6             // Network timeout (seconds)
+#define Y_MIN -0.28             // Network timeout (seconds)
+#define Y_MAX 0.28             // Network timeout (seconds)
 
 namespace k_api = Kinova::Api;
 
@@ -130,7 +134,7 @@ public:
     void plot(vector<vector<float>> expected_data,vector<vector<float>> measured_data);
     int create_plot_file(string file_name, vector<vector<float>> data);
     vector<float> rms_error(vector<vector<float>> expected, vector<vector<float>> measured);
-    vector<vector<float>> generate_performance_file(const std::string& filename, vector<vector<float>>data);
+    vector<vector<float>> generate_log(const std::string& filename, vector<vector<float>>data);
     void output_joint_values_to_csv(std::vector<std::vector<float>> joint_angles, const std::string& filename);
     void execute_demo();
     void set_origin_point();

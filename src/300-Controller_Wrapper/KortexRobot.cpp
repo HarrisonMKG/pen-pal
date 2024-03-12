@@ -13,6 +13,8 @@
 *
 */
 #include "KortexRobot.hpp"
+#include <cstdint>
+#include <sstream>
 
 namespace k_api = Kinova::Api;
 
@@ -64,6 +66,7 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       float y_diff_expected = (expected_data[i][2]-expected_data[i-1][2]);
       float velocity_expected = (sqrt(pow(y_diff_expected,2) + pow(x_diff_expected,2))/time_diff_expected);
 
+
       float time_diff_measured = (measured_data[i][0]-measured_data[i-1][0]);
       float x_diff_measured = (measured_data[i][1]-measured_data[i-1][1]);
       float y_diff_measured = (measured_data[i][2]-measured_data[i-1][2]);
@@ -75,6 +78,7 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       cout<< "MEASURED TIME: "<< setprecision(8) << measured_data[i][0]<<" "<< setprecision(8) <<measured_data[i-1][0] <<" "<< setprecision(8) <<(measured_data[i][0]-measured_data[i-1][0]) << " || EXPECTED TIME: "<< setprecision(8) << expected_data[i][0]*1000<<" "<< setprecision(8) <<expected_data[i-1][0]*1000 <<" "<< setprecision(8) <<(expected_data[i][0]-expected_data[i-1][0])*1000<<endl;
       //cout<<"EXPECTED X DIFF: " << setprecision(5) << x_diff_expected << " EXPECTED Y DIFF: " << setprecision(5) << y_diff_expected << " MEASURED X DIFF: " << setprecision(5) << x_diff_measured <<    " MEASURED Y DIFF: " << setprecision(5) << y_diff_measured << endl;
       cout<<"VELOCITY EXPECTED: " << setprecision(5) << velocity_expected <<" VELOCITY MEASURED: " << setprecision(5) << velocity_measured <<endl;
+
 
       float velocity_error = pow((velocity_expected - velocity_measured),2);
       velocity_error_sum += velocity_error;
@@ -487,21 +491,11 @@ std::vector<std::vector<float>> KortexRobot::read_csv(const std::string& filenam
 	return result;
 }
 
-vector<vector<float>> KortexRobot::generate_performance_file(const std::string& filename, vector<vector<float>> data) {
+vector<vector<float>> KortexRobot::generate_log(const std::string& filename, vector<vector<float>> data) {
 		vector<vector<float>> waypoints;
 
 	std::ofstream file(filename);
-  vector<string> col_headers = {"seconds","x","y","z"};
-
-  //populate headers
-  /*
-  for(int i= 0; i<col_headers.size();i++)
-  {
-    file<<col_headers[i];
-    if(i!=col_headers.size()-1) file << ",";
-  }
-  file << endl;
-  */
+  std::ostringstream buffer; 
 
   k_api::Base::Pose pose;
 
@@ -510,7 +504,7 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
   {
     vector<float> point;
 
-    file << angles[0] << ','; // Seconds
+    buffer << angles[0] << ','; // Seconds
     point.push_back(angles[0]);
     angles.erase(angles.begin());
     Kinova::Api::Base::JointAngles joint_angles;
@@ -526,20 +520,21 @@ vector<vector<float>> KortexRobot::generate_performance_file(const std::string& 
       pose = base->ComputeForwardKinematics(joint_angles);
       point.insert(point.end(),{pose.x()+bais_vector[0],pose.y()+bais_vector[1],pose.z()+bais_vector[2]});
       waypoints.push_back(point);
-      file << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
+      buffer << pose.x()+bais_vector[0] << ',' << pose.y()+bais_vector[1] << ',' << pose.z()+bais_vector[2] << endl;
     }
     catch(const Kinova::Api::KDetailedException e)
     {
-      file << "FK failure for the following joint angles:";
+      buffer << "FK failure for the following joint angles:";
       for(int i= 0; i<joint_angles.joint_angles_size(); i++)
       {
-        file << "\tJoint\t" << i << " : "<< joint_angles.joint_angles(i).value();
+        buffer << "\tJoint\t" << i << " : "<< joint_angles.joint_angles(i).value();
       }
-      file << endl; 
+      buffer << endl; 
     }
     //std::cout<< "COORDINATES: " << pose.x()+bais_vector[0] << " " << pose.y()+bais_vector[1] << " " << pose.z()+bais_vector[2] << " " <<endl;
   }
 
+  file << buffer.str();
 	file.close();
   return waypoints;
 }
@@ -556,8 +551,9 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
     }
     lifted_thresh /= csv_points.size();
     cout<<lifted_thresh<<endl;
-    for (auto& point : csv_points)
+    for (int i = 0; i<csv_points.size(); i++)
 	{
+        auto& point = csv_points[i];
 		if(point.size() > 3){
 			point.erase(point.begin());// remove seconds value for IR sensor
 		}
@@ -572,8 +568,18 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
             point[2] = altered_origin[2]+0.004;
         }
         else{
-        point[2] =  altered_origin[2];
+            point[2] =  altered_origin[2];
         }
+
+        // Check if point is outside of boundaries provided (X_MIN/MAX, Y_MIN/MAX)
+        if (point[0] > X_MAX || point[0] < X_MIN || point[1] > Y_MAX || point[1] < Y_MIN) {
+            cout << "The following point (index : " << i << ") is found outside of the set Boundaries imposed on the Robot after the initial bias is applied" <<endl;
+            cout << "Calculated: \tX: " << point[0] << "\tY: " << point[1] << "\tZ: " << point[2] << endl;
+            cout << "Move the starting point of robot arm over so the entire trajectory fits within the acceptable bounds. Unless the overall trajectory is too large" <<endl;
+            cout << "BOUNDARY Values: " << "\tX_min: " << X_MIN << "\tX_max: " << X_MAX << "\tY_min: " << Y_MIN << "\tY_min: " << Y_MIN ;
+            return {{}};
+        }
+
 		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
 	}
     if (verbose) {

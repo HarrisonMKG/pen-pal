@@ -13,7 +13,10 @@ int main(int argc, char **argv)
     KortexRobot pen_pal(parsed_args.ip_address,parsed_args.username,parsed_args.password, demo);
     
     pen_pal.get_gain_values(gain_file);
-    vector<vector<float>> expected_waypoints = pen_pal.read_csv("../coordinates/Pen_Pal_with_lift.csv");
+    int joint_string_idx = input_coordinates_file.find("__joints");
+  	string original_cart_file = input_coordinates_file.substr(0,joint_string_idx);
+    original_cart_file = original_cart_file + ".csv";
+    vector<vector<float>> expected_waypoints = pen_pal.read_csv(original_cart_file);
 
     vector<vector<float>> expected_angles = pen_pal.read_csv(input_coordinates_file, 1);
     vector<vector<float>> measured_joint_angles = pen_pal.move_cartesian(expected_angles, repeat, 180.0, 0.0, 90.0, true);
