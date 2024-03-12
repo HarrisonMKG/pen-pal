@@ -5,6 +5,8 @@ import numpy as np
 import statsmodels.api as sm
 from subprocess import call
 import matplotlib.pyplot as plt
+import argparse
+
 
 # Initialize the list to store coordinates and timestamps
 data = []
@@ -89,8 +91,6 @@ def track_laser(video_path, output_csv):
     print(f"Smoothed data saved to {output_csv}")
     graph(df['X_smoothed'],df['Y_smoothed'])
 
-
-
 def graph(x_values,y_values):
     # Plot scatter points
     plt.scatter(x_values, y_values, color='blue', alpha=0.5)
@@ -109,11 +109,23 @@ def graph(x_values,y_values):
 # Show the plot
     plt.show()
     
-# Example usage
-track_laser('./laser_check.mp4', 'laser_coordinates.csv')
 
-print("Generate IKs...")
-with open('gen_ik.sh', 'rb') as file:
-    script = file.read()
-#rc = call(script, shell=True)
-print("IKs Generated")
+if __name__ == "__main__":
+    # Create an argument parser
+    parser = argparse.ArgumentParser(description='Process data and plot smoothed curves.')
+
+    # Add arguments
+    parser.add_argument('input_video', type=str, help='Input MP4 file containing data')
+    parser.add_argument('--output', type=str, default='laser_coordinates.csv', help='Output file to save the waypoints (default: laser_coordinates.csv)')
+    parser.add_argument('--frac', type=float, default=0.1, help='Fraction of data used for smoothing')
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    track_laser(args.input_video, args.output) 
+
+    print("Generate IKs...")
+    with open('gen_ik.sh', 'rb') as file:
+        script = file.read()
+    rc = call(script, shell=True)
+    print("IKs Generated")
