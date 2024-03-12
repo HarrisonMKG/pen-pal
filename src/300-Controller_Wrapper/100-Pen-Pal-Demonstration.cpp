@@ -11,7 +11,6 @@ int main(int argc, char **argv)
   	bool demo = parsed_args.demo;
 
     KortexRobot pen_pal(parsed_args.ip_address,parsed_args.username,parsed_args.password, demo);
-    pen_pal.execute_demo();
     pen_pal.get_gain_values(gain_file);
   
     vector<vector<float>> expected_waypoints = pen_pal.read_csv(input_coordinates_file);
