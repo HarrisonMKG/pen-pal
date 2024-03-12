@@ -72,12 +72,10 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       float y_diff_measured = (measured_data[i][2]-measured_data[i-1][2]);
       float velocity_measured = (sqrt(pow(y_diff_measured,2) + pow(x_diff_measured,2))/time_diff_measured);
 
-      velocity_average_measured += velocity_measured;
-      velocity_average_expected += velocity_expected;
+      velocity_average_measured += pow(velocity_measured,2);
+      velocity_average_expected += pow(velocity_expected,2);
       
-      cout<< "MEASURED TIME: "<< setprecision(8) << measured_data[i][0]<<" "<< setprecision(8) <<measured_data[i-1][0] <<" "<< setprecision(8) <<(measured_data[i][0]-measured_data[i-1][0]) << " || EXPECTED TIME: "<< setprecision(8) << expected_data[i][0]*1000<<" "<< setprecision(8) <<expected_data[i-1][0]*1000 <<" "<< setprecision(8) <<(expected_data[i][0]-expected_data[i-1][0])*1000<<endl;
       //cout<<"EXPECTED X DIFF: " << setprecision(5) << x_diff_expected << " EXPECTED Y DIFF: " << setprecision(5) << y_diff_expected << " MEASURED X DIFF: " << setprecision(5) << x_diff_measured <<    " MEASURED Y DIFF: " << setprecision(5) << y_diff_measured << endl;
-      cout<<"VELOCITY EXPECTED: " << setprecision(5) << velocity_expected <<" VELOCITY MEASURED: " << setprecision(5) << velocity_measured <<endl;
 
 
       float velocity_error = pow((velocity_expected - velocity_measured),2);
@@ -108,8 +106,8 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
   velocity_average_expected /= measured_data.size()-1;
   velocity_average_measured /= measured_data.size()-1;
 
-  cout << "AVERAGE MEASURED VELOCITY: " << setprecision(5) << velocity_average_measured << endl;
-  cout << "AVERAGE EXPECTED VELOCITY: " << setprecision(5) << velocity_average_expected << endl;
+  cout << "RMS measured velocity: " << setprecision(5) << sqrt(velocity_average_measured) << endl;
+  cout << "RMS expected velocity: " << setprecision(5) << sqrt(velocity_average_expected) << endl;
   
   float rms_spatial = sqrt(spatial_error_sum/(measured_data.size()-1));
   float rms_velocity = sqrt(velocity_error_sum/(measured_data.size()-1));
