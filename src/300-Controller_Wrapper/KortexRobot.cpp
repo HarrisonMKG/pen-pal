@@ -55,8 +55,8 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
     float spatial_error_sum = 0;
     float velocity_error_sum = 0;
     bool first_pass = true;
-    float velocity_average_measured = 0;
-    float velocity_average_expected = 0;
+    float velocity_sum_measured = 0;
+    float velocity_sum_expected = 0;
   // measured_data.size()-1 because last data point seems to have crazy high error
     for(int i = 0; i<measured_data.size()-1; i++)
     {
@@ -73,8 +73,8 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       float y_diff_measured = (measured_data[i][2]-measured_data[i-1][2]);
       float velocity_measured = (sqrt(pow(y_diff_measured,2) + pow(x_diff_measured,2))/time_diff_measured);
 
-      velocity_average_measured += pow(velocity_measured,2);
-      velocity_average_expected += pow(velocity_expected,2);
+      velocity_sum_measured += pow(velocity_measured,2);
+      velocity_sum_expected += pow(velocity_expected,2);
       
       //cout<<"EXPECTED X DIFF: " << setprecision(5) << x_diff_expected << " EXPECTED Y DIFF: " << setprecision(5) << y_diff_expected << " MEASURED X DIFF: " << setprecision(5) << x_diff_measured <<    " MEASURED Y DIFF: " << setprecision(5) << y_diff_measured << endl;
 
@@ -104,16 +104,16 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       //cout << "error sum: " << error_sum << endl;
       spatial_error_sum += spatial_error_sqr;
     }
-  velocity_average_expected /= measured_data.size()-1;
-  velocity_average_measured /= measured_data.size()-1;
+  float rms_velocity_measured = sqrt(velocity_sum_measured / measured_data.size()-1);
+  float rms_velocity_expected = sqrt(velocity_sum_expected / measured_data.size()-1);
 
-  cout << "RMS measured velocity: " << setprecision(5) << sqrt(velocity_average_measured) << endl;
-  cout << "RMS expected velocity: " << setprecision(5) << sqrt(velocity_average_expected) << endl;
-  
   float rms_spatial = sqrt(spatial_error_sum/(measured_data.size()-1));
-  float rms_velocity = sqrt(velocity_error_sum/(measured_data.size()-1));
+  float rms_velocity_error = sqrt(velocity_error_sum/(measured_data.size()-1));
+
   rms.push_back(rms_spatial);
-  rms.push_back(rms_velocity);
+  rms.push_back(rms_velocity_expected);
+  rms.push_back(rms_velocity_measured);
+  rms.push_back(rms_velocity_error);
 
 
   return rms; 
