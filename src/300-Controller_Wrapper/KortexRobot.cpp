@@ -545,7 +545,10 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
     // Assuming the format of the csv_file will be in (time, x, y, z) for each line
     vector<float> temp_first_points(3, 0.0);
     int indx = 0;
+    float offset =0;
+    int last = 0;
     float lifted_thresh = 0.0;
+    int lifted_flag = 0;
     for (int i = 0; i<csv_points.size(); i++){
         lifted_thresh += csv_points[i][3];
     }
@@ -564,10 +567,23 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         }
         point[0] -= bais_vector[0];
         point[1] -= bais_vector[1];
+
+        //set flag here for first raise
         if (point[2] - lifted_thresh > 0.0){
-            point[2] = altered_origin[2]+0.004;
+            if (lifted_flag == 0){
+                lifted_flag == 1
+            }else{
+                if(offset <0.003){
+                    offset += 0.0005
+                }  
+            }
+            point[2] = altered_origin[2]+offset;
         }
         else{
+            if(lifted_flag == 1){
+                lifted_flag =0;
+                last = 1;
+            }
             point[2] =  altered_origin[2];
         }
 
@@ -579,8 +595,16 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
             cout << "BOUNDARY Values: " << "\tX_min: " << X_MIN << "\tX_max: " << X_MAX << "\tY_min: " << Y_MIN << "\tY_min: " << Y_MIN ;
             return {{}};
         }
-
+        //use this to find the last couple points, and adjust them
+        if (last == 1){
+            for (k==1; k <7; k++){
+                offset -= 0.005
+                csv_points[i-k][3] = csv_points[i-k][3] -offset;
+            }
+            last = 0;
+        }
 		point.insert(point.end(),{0,kTheta_x,kTheta_y,kTheta_z});
+
 	}
     if (verbose) {
         cout << "Modified Vector" << endl;
