@@ -26,13 +26,12 @@ def lin_interporlate(start_point, end_point, num_points):
 
     return
 
-def track_laser(video_path, output_csv):
+def track_laser(video_path, output_csv, num_points_interp):
     global data
     # Open the video
     cap = cv2.VideoCapture(video_path)
     faux_z = 0.02
     first_measure = True
-    num_points_interp = 10
     
     # Check if video opened successfully
     if not cap.isOpened():
@@ -133,13 +132,14 @@ if __name__ == "__main__":
 
     # Add arguments
     parser.add_argument('input_video', type=str, help='Input MP4 file containing data')
-    parser.add_argument('--output', type=str, default='laser_coordinates.csv', help='Output file to save the waypoints (default: laser_coordinates.csv)')
-    parser.add_argument('--frac', type=float, default=0.1, help='Fraction of data used for smoothing')
+    parser.add_argument('-o','--output', type=str, default='laser_coordinates.csv', help='Output file to save the waypoints (default: laser_coordinates.csv)')
+    parser.add_argument('-i','--interpt', type=int, default=2, help='Number of points to linearly interporlate')
+    parser.add_argument('-f','--frac', type=float, default=0.1, help='Fraction of data used for smoothing')
 
     # Parse arguments
     args = parser.parse_args()
 
-    track_laser(args.input_video, args.output) 
+    track_laser(args.input_video, args.output, args.interpt) 
 
     print("Generate IKs...")
     with open('gen_ik.sh', 'rb') as file:
