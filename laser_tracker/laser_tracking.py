@@ -62,6 +62,8 @@ def track_laser(video_path, output_csv, num_points_interp):
                 M = cv2.moments(largest_contour)
                 if M["m00"] != 0:
                     scaling_factor = 0.16  # Adjust this scaling factor as needed
+                    printed_cX = int(M["m10"] / M["m00"])
+                    printed_cY = int(M["m01"] / M["m00"])
                     cX = int(M["m10"] / M["m00"] * scaling_factor)
                     cY = int(M["m01"] / M["m00"] * scaling_factor)
                     # Save the timestamp and coordinates
@@ -74,7 +76,7 @@ def track_laser(video_path, output_csv, num_points_interp):
                         time_elapsed = (curr_time - time_ref) / 1000
                         lin_interporlate(data[-1], [time_elapsed, cX, cY, faux_z], num_points_interp)
 
-                    cv2.circle(frame, (cX, cY), 5, (255, 0, 0), -1)
+                    cv2.circle(frame, (printed_cX, printed_cY), 5, (255, 0, 0), -1)
 
                     data.append([time_elapsed, cX, cY, faux_z])
                     count += 1
