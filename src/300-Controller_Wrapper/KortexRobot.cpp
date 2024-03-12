@@ -41,11 +41,12 @@ void KortexRobot::plot(vector<vector<float>> expected_data,vector<vector<float>>
   "'" + measured_file + "' with line \n";
   fprintf(gnu_plot, cmd.c_str());
   fflush(gnu_plot);
+  std::cout << "Press Enter to continue...";
+  std::cin.get();
 
   //Clean up
-  //std::this_thread::sleep_for(std::chrono::milliseconds(1000));
-  //std::remove(expected_file.c_str());
-  //std::remove(measured_file.c_str());
+  std::remove(expected_file.c_str());
+  std::remove(measured_file.c_str());
 }
 
 vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector<vector<float>> measured_data)
@@ -54,8 +55,8 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
     float spatial_error_sum = 0;
     float velocity_error_sum = 0;
     bool first_pass = true;
-    float velocity_average_measured;
-    float velocity_average_expected;
+    float velocity_average_measured = 0;
+    float velocity_average_expected = 0;
   // measured_data.size()-1 because last data point seems to have crazy high error
     for(int i = 0; i<measured_data.size()-1; i++)
     {
