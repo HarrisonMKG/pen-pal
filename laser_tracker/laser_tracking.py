@@ -12,12 +12,27 @@ import argparse
 data = []
 
 # Function to track the laser
+def lin_interporlate(start_point, end_point, num_points):
+    delta_time = (end_point[0] - start_point[0])/(num_points)
+    delta_x = (end_point[1] - start_point[1])/num_points
+    delta_y = (end_point[2] - start_point[2])/num_points
+    faux_z = 0.02
+
+    for i in range(1,num_points):
+        tmp_time = start_point[0] + delta_time * i 
+        tmp_x = start_point[1] + delta_x * i
+        tmp_y = start_point[2] + delta_y * i
+        data.append([tmp_time, tmp_x, tmp_y, faux_z])
+
+    return
+
 def track_laser(video_path, output_csv):
     global data
     # Open the video
     cap = cv2.VideoCapture(video_path)
     faux_z = 0.02
     first_measure = True
+    num_points_interp = 10
     
     # Check if video opened successfully
     if not cap.isOpened():
@@ -58,8 +73,10 @@ def track_laser(video_path, output_csv):
                         first_measure = False
                     else:
                         time_elapsed = (curr_time - time_ref) / 1000
-                        data.append([time_elapsed, cX, cY, faux_z])
-                        count += 1
+                        lin_interporlate(data[-1], [time_elapsed, cX, cY, faux_z], num_points_interp)
+
+                    data.append([time_elapsed, cX, cY, faux_z])
+                    count += 1
                     
                     # Optionally, visualize the tracking
                     cv2.circle(frame, (cX, cY), 5, (255, 0, 0), -1)
@@ -124,8 +141,8 @@ if __name__ == "__main__":
 
     track_laser(args.input_video, args.output) 
 
-    # print("Generate IKs...")
-    # with open('gen_ik.sh', 'rb') as file:
-    #     script = file.read()
-    # rc = call(script, shell=True)
-    # print("IKs Generated")
+    print("Generate IKs...")
+    with open('gen_ik.sh', 'rb') as file:
+         script = file.read()
+    rc = call(script, shell=True)
+    print("IKs Generated")
