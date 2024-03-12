@@ -4,7 +4,9 @@ import time
 import numpy as np
 import statsmodels.api as sm
 from subprocess import call
+import matplotlib.pyplot as plt
 import argparse
+
 
 # Initialize the list to store coordinates and timestamps
 data = []
@@ -87,7 +89,26 @@ def track_laser(video_path, output_csv):
     # Save the smoothed data to a CSV file
     df[['Time','X_smoothed', 'Y_smoothed', 'Faux_Z']].to_csv(output_csv, index=False, header=None)
     print(f"Smoothed data saved to {output_csv}")
+    graph(df['X_smoothed'],df['Y_smoothed'])
 
+def graph(x_values,y_values):
+    # Plot scatter points
+    plt.scatter(x_values, y_values, color='blue', alpha=0.5)
+
+# Sort data by x-values
+    plt.plot(x_values, y_values, linestyle='-', color='red')
+
+# Add labels and title
+    plt.xlabel('X Axis')
+    plt.ylabel('Y Axis')
+    plt.title('Scatter Plot of Points with Lines')
+
+# Show grid
+    plt.grid(True)
+
+# Show the plot
+    plt.show()
+    
 
 if __name__ == "__main__":
     # Create an argument parser
@@ -100,7 +121,7 @@ if __name__ == "__main__":
 
     # Parse arguments
     args = parser.parse_args()
-# Example usage
+
     track_laser(args.input_video, args.output) 
 
     print("Generate IKs...")
