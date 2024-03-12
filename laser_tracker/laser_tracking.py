@@ -47,7 +47,7 @@ def track_laser(video_path, output_csv):
                 largest_contour = max(contours, key=cv2.contourArea)
                 M = cv2.moments(largest_contour)
                 if M["m00"] != 0:
-                    scaling_factor = 0.1  # Adjust this scaling factor as needed
+                    scaling_factor = 1  # Adjust this scaling factor as needed
                     cX = int(M["m10"] / M["m00"] * scaling_factor)
                     cY = int(M["m01"] / M["m00"] * scaling_factor)
                     # Save the timestamp and coordinates
@@ -124,8 +124,8 @@ if __name__ == "__main__":
 
     track_laser(args.input_video, args.output) 
 
-    print("Generate IKs...")
-    with open('gen_ik.sh', 'rb') as file:
-        script = file.read()
-    rc = call(script, shell=True)
-    print("IKs Generated")
+    # print("Generate IKs...")
+    # with open('gen_ik.sh', 'rb') as file:
+    #     script = file.read()
+    # rc = call(script, shell=True)
+    # print("IKs Generated")
