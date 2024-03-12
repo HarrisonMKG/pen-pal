@@ -87,7 +87,7 @@ private:
 
 public:
     KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password, bool inputdemo = false);
-	void go_home();
+	void go_to_point(const std::string& actionName);
 	void connect();
 	void disconnect();
     ~KortexRobot();
@@ -132,6 +132,8 @@ public:
     vector<float> rms_error(vector<vector<float>> expected, vector<vector<float>> measured);
     vector<vector<float>> generate_performance_file(const std::string& filename, vector<vector<float>>data);
     void output_joint_values_to_csv(std::vector<std::vector<float>> joint_angles, const std::string& filename);
+    void execute_demo();
+    void set_origin_point();
 
 	FILE *gnu_plot;
 

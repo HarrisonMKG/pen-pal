@@ -268,8 +268,7 @@ void KortexRobot::connect()
 	base->ClearFaults();
     std::cout << "Cleared all errors on Robot" << std::endl;
 
-    auto current_pose = base->GetMeasuredCartesianPose();
-    altered_origin = {current_pose.x(),current_pose.y(),current_pose.z()};
+    set_origin_point();
 
     bais_vector = {0.0, 0.0, 0.0};      
 }
@@ -317,25 +316,26 @@ void KortexRobot::writing_mode()
 }
 
 
-void KortexRobot::go_home()
+void KortexRobot::go_to_point(const std::string& actionName)
 {
     set_actuator_control_mode(0);
     // Make sure the arm is in Single Level Servoing before executing an Action
     auto servoingMode = k_api::Base::ServoingModeInformation();
     servoingMode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
 	base->SetServoingMode(servoingMode);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // Move arm to ready position
-    std::cout << "Moving the arm to a safe position" << std::endl;
+    std::cout << "Looking for Action named: " << actionName << std::endl;
     auto action_type = k_api::Base::RequestedActionType();
-    action_type.set_action_type(k_api::Base::REACH_JOINT_ANGLES);
+    action_type.set_action_type(k_api::Base::REACH_POSE);
     auto action_list = base->ReadAllActions(action_type);
     auto action_handle = k_api::Base::ActionHandle();
     action_handle.set_identifier(0);
+
     for (auto action : action_list.action_list()) 
     {
-        if (action.name() == "Home") 
+        cout << "ACTUON: " << action.name() << endl;
+        if (action.name() == actionName) 
         {
             action_handle = action.handle();
         }
@@ -343,10 +343,12 @@ void KortexRobot::go_home()
 
     if (action_handle.identifier() == 0) 
     {
-        std::cout << "Can't reach safe position, exiting" << std::endl;
+        std::cout << "Could not find Action you wanted to exectute" << std::endl;
+        std::cout << "Please confirm the action is loaded on the robot by going to the Kinova portal" << std::endl;
     } 
     else 
-    {
+    {   
+        cout << "Executing Action Item: " << actionName << endl;
         bool action_finished = false; 
         // Notify of any action topic event
         auto options = k_api::Common::NotificationOptions();
@@ -364,6 +366,7 @@ void KortexRobot::go_home()
 
 		base->Unsubscribe(notification_handle);
     }
+    cout << "Completed Action";
 }
 
 void KortexRobot::find_paper()
@@ -1015,4 +1018,43 @@ void KortexRobot::output_joint_values_to_csv(std::vector<std::vector<float>> joi
     }
 
 	file.close();
+}
+
+void KortexRobot::set_origin_point() {
+    auto current_pose = base->GetMeasuredCartesianPose();
+    altered_origin = {current_pose.x(),current_pose.y(),current_pose.z()}; 
+    cout << "NEW ORIGIN AT: ()" << altered_origin[0] << ", " << altered_origin[1] << ", " << altered_origin[2] << endl;
+}
+
+void KortexRobot::execute_demo() {
+    string pos1 = "Demo_32_Bot_Right";
+    string pos2 = "Demo_32_Bot_Left";
+    string pos3 = "Demo_32_Top_Left";
+    string pos4 = "Demo_32_Top_Right";
+    // vector<vector<float>> expected_angles_1 = pen_pal.read_csv(input_coordinates_file, 1);
+    // vector<vector<float>> expected_angles_2 = pen_pal.read_csv(input_coordinates_file, 1);
+    // vector<vector<float>> expected_angles_3 = pen_pal.read_csv(input_coordinates_file, 1);
+    // vector<vector<float>> expected_angles_4 = pen_pal.read_csv(input_coordinates_file, 1);
+
+    // Move to first starting position
+    go_to_point(pos1);
+    // Update starting point and execute
+    set_origin_point();
+    vector<vector<float>> measured_joint_angles = pen_pal.move_cartesian(expected_angles, repeat, 180.0, 0.0, 90.0, true);
+
+    // Execute first trajectory
+    // move_cartesian()
+    // Dont calculate error
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    go_to_point(pos2);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+
+    go_to_point(pos3);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    go_to_point(pos4);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    
 }
