@@ -1037,7 +1037,7 @@ void KortexRobot::execute_demo() {
     string pos2 = "Demo_32_Bot_Left";
     string pos3 = "Demo_32_Top_Left";
     string pos4 = "Demo_32_Top_Right";
-    // vector<vector<float>> expected_angles_1 = pen_pal.read_csv(input_coordinates_file, 1);
+    vector<vector<float>> empty_vec;
     // vector<vector<float>> expected_angles_2 = pen_pal.read_csv(input_coordinates_file, 1);
     // vector<vector<float>> expected_angles_3 = pen_pal.read_csv(input_coordinates_file, 1);
     // vector<vector<float>> expected_angles_4 = pen_pal.read_csv(input_coordinates_file, 1);
@@ -1046,7 +1046,7 @@ void KortexRobot::execute_demo() {
     go_to_point(pos1);
     // Update starting point and execute
     set_origin_point();
-    vector<vector<float>> measured_joint_angles = pen_pal.move_cartesian(expected_angles, repeat, 180.0, 0.0, 90.0, true);
+    vector<vector<float>> measured_joint_angles = KortexRobot::move_cartesian(empty_vec, false , 180.0, 0.0, 90.0, true);
 
     // Execute first trajectory
     // move_cartesian()
