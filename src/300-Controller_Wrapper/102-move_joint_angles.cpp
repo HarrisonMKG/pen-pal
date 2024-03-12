@@ -31,6 +31,6 @@ int main(int argc, char **argv)
     pen_pal.plot(expected_waypoints,measured_waypoints);
     vector<float> rms = pen_pal.rms_error(expected_waypoints,measured_waypoints); 
     cout << "Spatial RMS Error:\t"<< rms[0] <<endl;
-    cout << "Temporal RMS Error:\t"<< rms[1] <<endl;  
+    cout << "Velocity RMS Error:\t"<< rms[1] <<endl;
     return 0;
 }

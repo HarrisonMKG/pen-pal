@@ -41,6 +41,7 @@
 #endif
 #include <time.h>
 
+
 #define PORT 10000
 #define PORT_REAL_TIME 10001
 #define DURATION 100             // Network timeout (seconds)
@@ -90,7 +91,7 @@ private:
 
 public:
     KortexRobot(const std::string& ip_address, const std::string& username, const std::string& password, bool inputdemo = false);
-	void go_home();
+	void go_to_point(const std::string& actionName);
 	void connect();
 	void disconnect();
     ~KortexRobot();
@@ -109,7 +110,7 @@ public:
     void calculate_bias(std::vector<float> first_waypoint);
     void output_arm_limits_and_mode();
 
-    const vector<float> actuator_pos_tolerance = {0.1, 0.1, 0.1, 0.1, 0.1, 0.1};
+    const vector<float> actuator_pos_tolerance = {0.07, 0.1, 0.1, 0.1, 0.1, 0.1};
     const vector<int> actuator_control_types = {1,1,1,1,1,0};
 	const vector<float> command_max = {100.0, 30, 30.0, 15.0, 30, 25.0}; 
 	const vector<float> command_min = {-100.0, -30.0, -30.0, -15.0, -30, -25.0}; 
@@ -135,6 +136,8 @@ public:
     vector<float> rms_error(vector<vector<float>> expected, vector<vector<float>> measured);
     vector<vector<float>> generate_log(const std::string& filename, vector<vector<float>>data);
     void output_joint_values_to_csv(std::vector<std::vector<float>> joint_angles, const std::string& filename);
+    void execute_demo();
+    void set_origin_point();
 
 	FILE *gnu_plot;
 

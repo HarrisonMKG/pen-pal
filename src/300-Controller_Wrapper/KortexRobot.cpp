@@ -54,7 +54,9 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
     float spatial_error_sum = 0;
     float velocity_error_sum = 0;
     bool first_pass = true;
-  // measured_data.size()-1 beacuse last data point seems to have crazy high error
+    float velocity_average_measured;
+    float velocity_average_expected;
+  // measured_data.size()-1 because last data point seems to have crazy high error
     for(int i = 0; i<measured_data.size()-1; i++)
     {
       if(!first_pass)
@@ -62,12 +64,21 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       float time_diff_expected = (expected_data[i][0]-expected_data[i-1][0])*1000; // *1000 to undo error in read_csv scale
       float x_diff_expected = (expected_data[i][1]-expected_data[i-1][1]);
       float y_diff_expected = (expected_data[i][2]-expected_data[i-1][2]);
-      float velocity_expected = (sqrt(pow(y_diff_expected,2)+pow(x_diff_expected,2))/time_diff_expected);
+      float velocity_expected = (sqrt(pow(y_diff_expected,2) + pow(x_diff_expected,2))/time_diff_expected);
+
 
       float time_diff_measured = (measured_data[i][0]-measured_data[i-1][0]);
       float x_diff_measured = (measured_data[i][1]-measured_data[i-1][1]);
       float y_diff_measured = (measured_data[i][2]-measured_data[i-1][2]);
       float velocity_measured = (sqrt(pow(y_diff_measured,2) + pow(x_diff_measured,2))/time_diff_measured);
+
+      velocity_average_measured += velocity_measured;
+      velocity_average_expected += velocity_expected;
+      
+      cout<< "MEASURED TIME: "<< setprecision(8) << measured_data[i][0]<<" "<< setprecision(8) <<measured_data[i-1][0] <<" "<< setprecision(8) <<(measured_data[i][0]-measured_data[i-1][0]) << " || EXPECTED TIME: "<< setprecision(8) << expected_data[i][0]*1000<<" "<< setprecision(8) <<expected_data[i-1][0]*1000 <<" "<< setprecision(8) <<(expected_data[i][0]-expected_data[i-1][0])*1000<<endl;
+      //cout<<"EXPECTED X DIFF: " << setprecision(5) << x_diff_expected << " EXPECTED Y DIFF: " << setprecision(5) << y_diff_expected << " MEASURED X DIFF: " << setprecision(5) << x_diff_measured <<    " MEASURED Y DIFF: " << setprecision(5) << y_diff_measured << endl;
+      cout<<"VELOCITY EXPECTED: " << setprecision(5) << velocity_expected <<" VELOCITY MEASURED: " << setprecision(5) << velocity_measured <<endl;
+
 
       float velocity_error = pow((velocity_expected - velocity_measured),2);
       velocity_error_sum += velocity_error;
@@ -94,6 +105,12 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       //cout << "error sum: " << error_sum << endl;
       spatial_error_sum += spatial_error_sqr;
     }
+  velocity_average_expected /= measured_data.size()-1;
+  velocity_average_measured /= measured_data.size()-1;
+
+  cout << "AVERAGE MEASURED VELOCITY: " << setprecision(5) << velocity_average_measured << endl;
+  cout << "AVERAGE EXPECTED VELOCITY: " << setprecision(5) << velocity_average_expected << endl;
+  
   float rms_spatial = sqrt(spatial_error_sum/(measured_data.size()-1));
   float rms_velocity = sqrt(velocity_error_sum/(measured_data.size()-1));
   rms.push_back(rms_spatial);
@@ -255,8 +272,7 @@ void KortexRobot::connect()
 	base->ClearFaults();
     std::cout << "Cleared all errors on Robot" << std::endl;
 
-    auto current_pose = base->GetMeasuredCartesianPose();
-    altered_origin = {current_pose.x(),current_pose.y(),current_pose.z()};
+    set_origin_point();
 
     bais_vector = {0.0, 0.0, 0.0};      
 }
@@ -304,25 +320,26 @@ void KortexRobot::writing_mode()
 }
 
 
-void KortexRobot::go_home()
+void KortexRobot::go_to_point(const std::string& actionName)
 {
     set_actuator_control_mode(0);
     // Make sure the arm is in Single Level Servoing before executing an Action
     auto servoingMode = k_api::Base::ServoingModeInformation();
     servoingMode.set_servoing_mode(k_api::Base::ServoingMode::SINGLE_LEVEL_SERVOING);
 	base->SetServoingMode(servoingMode);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
     // Move arm to ready position
-    std::cout << "Moving the arm to a safe position" << std::endl;
+    std::cout << "Looking for Action named: " << actionName << std::endl;
     auto action_type = k_api::Base::RequestedActionType();
-    action_type.set_action_type(k_api::Base::REACH_JOINT_ANGLES);
+    action_type.set_action_type(k_api::Base::REACH_POSE);
     auto action_list = base->ReadAllActions(action_type);
     auto action_handle = k_api::Base::ActionHandle();
     action_handle.set_identifier(0);
+
     for (auto action : action_list.action_list()) 
     {
-        if (action.name() == "Home") 
+        cout << "ACTUON: " << action.name() << endl;
+        if (action.name() == actionName) 
         {
             action_handle = action.handle();
         }
@@ -330,10 +347,12 @@ void KortexRobot::go_home()
 
     if (action_handle.identifier() == 0) 
     {
-        std::cout << "Can't reach safe position, exiting" << std::endl;
+        std::cout << "Could not find Action you wanted to exectute" << std::endl;
+        std::cout << "Please confirm the action is loaded on the robot by going to the Kinova portal" << std::endl;
     } 
     else 
-    {
+    {   
+        cout << "Executing Action Item: " << actionName << endl;
         bool action_finished = false; 
         // Notify of any action topic event
         auto options = k_api::Common::NotificationOptions();
@@ -351,6 +370,7 @@ void KortexRobot::go_home()
 
 		base->Unsubscribe(notification_handle);
     }
+    cout << "Completed Action";
 }
 
 void KortexRobot::find_paper()
@@ -511,6 +531,7 @@ vector<vector<float>> KortexRobot::generate_log(const std::string& filename, vec
       }
       buffer << endl; 
     }
+    //std::cout<< "COORDINATES: " << pose.x()+bais_vector[0] << " " << pose.y()+bais_vector[1] << " " << pose.z()+bais_vector[2] << " " <<endl;
   }
 
   file << buffer.str();
@@ -798,7 +819,7 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
                 last = GetTickUs();
             }
         }
-        cout<<"amount of time it took was:"<< (end_time-start_time)/1000000<< 's'<<endl;
+        cout<<"amount of time it took was:"<< setprecision(6) << (end_time-start_time)/1000000.0<< 's'<<endl;
     }
     catch (k_api::KDetailedException& ex)
     {
@@ -821,11 +842,11 @@ vector<vector<float>> KortexRobot::move_cartesian(std::vector<std::vector<float>
 vector<float> KortexRobot::measure_joints(k_api::BaseCyclic::Feedback base_feedback, int64_t start_time)
 {
   vector<float> current_joint_angles;
-  int64_t curr_time =GetTickUs();
-  int64_t time_diff = (curr_time-start_time)/(int64_t)1000000;
+  int64_t curr_time = GetTickUs();
+  float time_diff = (curr_time-start_time)/(float)1000000;
   current_joint_angles.push_back(time_diff);
 
-  for(int i=0; i<actuator_count; i++)
+  for(int i=0; i<actuator_count; i++)   
   {
     current_joint_angles.push_back(base_feedback.actuators(i).position());
   }
@@ -1003,4 +1024,43 @@ void KortexRobot::output_joint_values_to_csv(std::vector<std::vector<float>> joi
     }
 
 	file.close();
+}
+
+void KortexRobot::set_origin_point() {
+    auto current_pose = base->GetMeasuredCartesianPose();
+    altered_origin = {current_pose.x(),current_pose.y(),current_pose.z()}; 
+    cout << "NEW ORIGIN AT: ()" << altered_origin[0] << ", " << altered_origin[1] << ", " << altered_origin[2] << endl;
+}
+
+void KortexRobot::execute_demo() {
+    string pos1 = "Demo_32_Bot_Right";
+    string pos2 = "Demo_32_Bot_Left";
+    string pos3 = "Demo_32_Top_Left";
+    string pos4 = "Demo_32_Top_Right";
+    // vector<vector<float>> expected_angles_1 = pen_pal.read_csv(input_coordinates_file, 1);
+    // vector<vector<float>> expected_angles_2 = pen_pal.read_csv(input_coordinates_file, 1);
+    // vector<vector<float>> expected_angles_3 = pen_pal.read_csv(input_coordinates_file, 1);
+    // vector<vector<float>> expected_angles_4 = pen_pal.read_csv(input_coordinates_file, 1);
+
+    // Move to first starting position
+    go_to_point(pos1);
+    // Update starting point and execute
+    set_origin_point();
+    vector<vector<float>> measured_joint_angles = pen_pal.move_cartesian(expected_angles, repeat, 180.0, 0.0, 90.0, true);
+
+    // Execute first trajectory
+    // move_cartesian()
+    // Dont calculate error
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    go_to_point(pos2);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+
+    go_to_point(pos3);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+    go_to_point(pos4);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    
 }
