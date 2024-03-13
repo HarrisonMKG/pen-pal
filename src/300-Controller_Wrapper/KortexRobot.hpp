@@ -110,7 +110,7 @@ public:
     void calculate_bias(std::vector<float> first_waypoint);
     void output_arm_limits_and_mode();
 
-    const vector<float> actuator_pos_tolerance = {0.07, 0.1, 0.1, 0.1, 0.1, 0.1};
+    const vector<float> actuator_pos_tolerance = {0.085, 0.105, 0.105, 0.105, 0.105, 0.105};
     const vector<int> actuator_control_types = {1,1,1,1,1,0};
 	const vector<float> command_max = {100.0, 30, 30.0, 15.0, 30, 25.0}; 
 	const vector<float> command_min = {-100.0, -30.0, -30.0, -15.0, -30, -25.0}; 
