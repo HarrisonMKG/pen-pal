@@ -25,6 +25,7 @@ int main(int argc, char **argv)
     cout << "Velocity RMS Expected:\t"<< rms[1] <<endl;
     cout << "Velocity RMS Measured:\t"<< rms[2] <<endl;
     cout << "Velocity RMS Error:\t"<< rms[3] <<endl;
+    cout << "Temporal Error (%):\t"<< rms[4] <<endl;
 
     return 0;
 }
