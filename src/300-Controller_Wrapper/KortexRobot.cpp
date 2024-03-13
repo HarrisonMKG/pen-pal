@@ -104,8 +104,8 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       //cout << "error sum: " << error_sum << endl;
       spatial_error_sum += spatial_error_sqr;
     }
-  float rms_velocity_measured = sqrt(velocity_sum_measured / measured_data.size()-1);
-  float rms_velocity_expected = sqrt(velocity_sum_expected / measured_data.size()-1);
+  float rms_velocity_measured = sqrt(velocity_sum_measured / (measured_data.size()-1));
+  float rms_velocity_expected = sqrt(velocity_sum_expected / (measured_data.size()-1));
 
   float rms_spatial = sqrt(spatial_error_sum/(measured_data.size()-1));
   float rms_velocity_error = sqrt(velocity_error_sum/(measured_data.size()-1));
