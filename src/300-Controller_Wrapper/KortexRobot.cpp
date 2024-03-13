@@ -51,6 +51,7 @@ void KortexRobot::plot(vector<vector<float>> expected_data,vector<vector<float>>
 
 vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector<vector<float>> measured_data)
 {
+
     vector<float> rms;
     float spatial_error_sum = 0;
     float velocity_error_sum = 0;
@@ -62,6 +63,7 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
     {
       if(!first_pass)
     {
+
       float time_diff_expected = (expected_data[i][0]-expected_data[i-1][0])*1000; // *1000 to undo error in read_csv scale
       float x_diff_expected = (expected_data[i][1]-expected_data[i-1][1]);
       float y_diff_expected = (expected_data[i][2]-expected_data[i-1][2]);
@@ -78,19 +80,22 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       
       //cout<<"EXPECTED X DIFF: " << setprecision(5) << x_diff_expected << " EXPECTED Y DIFF: " << setprecision(5) << y_diff_expected << " MEASURED X DIFF: " << setprecision(5) << x_diff_measured <<    " MEASURED Y DIFF: " << setprecision(5) << y_diff_measured << endl;
 
-
+    
       float velocity_error = pow((velocity_expected - velocity_measured),2);
       velocity_error_sum += velocity_error;
+     
     }
     else
     {
       first_pass = false;
     }
+    
       //cout << "time exp: " << expected_data[i][0]*1000 << " time measure: " << measured_data[i][0];
-
-      float x_error = pow((expected_data[i][1] - measured_data[i][1])*1000,2);
-      float y_error = pow((expected_data[i][2] - measured_data[i][2])*1000,2);
+      
+      float x_error = pow(expected_data[i][1] - measured_data[i][1],2);
+      float y_error = pow(expected_data[i][2] - measured_data[i][2],2);
       float line_error = sqrt(x_error+y_error);
+    
     /*
     cout << "x maesured :"<< measured_data[i][1] << endl;
     cout << "x expected:"<< expected_data[i][1] << endl;
@@ -103,9 +108,11 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       float spatial_error_sqr = pow(line_error,2);
       //cout << "error sum: " << error_sum << endl;
       spatial_error_sum += spatial_error_sqr;
+    
     }
-  float rms_velocity_measured = sqrt(velocity_sum_measured / measured_data.size()-1);
-  float rms_velocity_expected = sqrt(velocity_sum_expected / measured_data.size()-1);
+    
+  float rms_velocity_measured = sqrt(velocity_sum_measured / (measured_data.size()-1));
+  float rms_velocity_expected = sqrt(velocity_sum_expected / (measured_data.size()-1));
 
   float rms_spatial = sqrt(spatial_error_sum/(measured_data.size()-1));
   float rms_velocity_error = sqrt(velocity_error_sum/(measured_data.size()-1));
@@ -114,7 +121,6 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
   rms.push_back(rms_velocity_expected);
   rms.push_back(rms_velocity_measured);
   rms.push_back(rms_velocity_error);
-
 
   return rms; 
 }
@@ -570,20 +576,20 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         //set flag here for first raise
         if (point[2] - lifted_thresh > 0.0){
             if (lifted_flag == 0){
-                lifted_flag == 1;
+                lifted_flag = 1;
             }else{
-                if(offset <0.003){
+                if(offset < 0.003){
                     offset += 0.00001;
                 }  
             }
-            point[2] = altered_origin[2]+offset;
+            point[2] = altered_origin[2] + offset;
         }
         else{
             if(lifted_flag == 1){
-                lifted_flag =0;
+                lifted_flag = 0;
                 last = 1;
             }
-            point[2] =  altered_origin[2];
+            point[2] = altered_origin[2];
         }
 
         // Check if point is outside of boundaries provided (X_MIN/MAX, Y_MIN/MAX)
@@ -596,8 +602,8 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         }
         //use this to find the last couple points, and adjust them
         if (last == 1){
-            for (k==1; k <31; k++){
-                offset -= 0.0001;
+            for (int k = 1; k < 31; k++){
+                offset -= 0.00001;
                 csv_points[i-k][3] = csv_points[i-k][3] -offset;
             }
             last = 0;
