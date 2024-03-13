@@ -90,20 +90,21 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       first_pass = false;
     }
     
-      //cout << "time exp: " << expected_data[i][0]*1000 << " time measure: " << measured_data[i][0];
+    //   cout << "time exp: " << expected_data[i][0]*1000 << " time measure: " << measured_data[i][0];
       
-      float x_error = pow(expected_data[i][1] - measured_data[i][1],2);
-      float y_error = pow(expected_data[i][2] - measured_data[i][2],2);
+      float x_error = pow((expected_data[i][1] - measured_data[i][1])*1000,2);
+      float y_error = pow((expected_data[i][2] - measured_data[i][2])*1000,2);
       float line_error = sqrt(x_error+y_error);
     
-    /*
-    cout << "x maesured :"<< measured_data[i][1] << endl;
-    cout << "x expected:"<< expected_data[i][1] << endl;
-    cout << "y maesured :"<< measured_data[i][2] << endl;
-    cout << "y expected:"<< expected_data[i][2] << endl;
-    cout << "line error:"<< expected_data[i][2] << endl;
-      cout << "x| measured:" << measured_data[i][1] << " expected:"<< expected_data[i][1] << " error: "<< x_error << endl;
-      */
+        /*
+        cout << "x maesured :"<< measured_data[i][1] << endl;
+        cout << "x expected:"<< expected_data[i][1] << endl;
+        cout << "y maesured :"<< measured_data[i][2] << endl;
+        cout << "y expected:"<< expected_data[i][2] << endl;
+        */
+        // cout << "line error:"<< expected_data[i][2] << endl;
+        // cout << "x| measured:" << measured_data[i][1] << " expected:"<< expected_data[i][1] << " error: "<< x_error << endl;
+    
 
       float spatial_error_sqr = pow(line_error,2);
       //cout << "error sum: " << error_sum << endl;
