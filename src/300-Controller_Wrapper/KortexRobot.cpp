@@ -1075,10 +1075,10 @@ void KortexRobot::execute_demo() {
     string pos2 = "Demo_32_Bot_Left";
     string pos3 = "Demo_32_Top_Left";
     string pos4 = "Demo_32_Top_Right";
-    vector<vector<float>> expected_angles_1 = read_csv("../coordinates/filtered_data/Harrison_Lift_Filtered__joints_bot_right.csv", 1);
-    vector<vector<float>> expected_angles_2 = read_csv("../coordinates/filtered_data/Pen_Pal_lifted_downsampled_filtered__joints_bot_left.csv", 1);
-    vector<vector<float>> expected_angles_3 = read_csv("../coordinates/filtered_data/Pieter_Filtered__joints_top_left.csv", 1);
-    vector<vector<float>> expected_angles_4 = read_csv("../coordinates/filtered_data/arabic_2_Filtered__joints_top_right.csv", 1); //Confirm it executes on the page
+    vector<vector<float>> expected_angles_1 = read_csv("../coordinates/demo_data/Harrison_Lift_Filtered__joints_bot_right.csv", 1);
+    vector<vector<float>> expected_angles_2 = read_csv("../coordinates/demo_data/Pen_Pal_lifted_downsampled_filtered__joints_bot_left.csv", 1);
+    vector<vector<float>> expected_angles_3 = read_csv("../coordinates/demo_data/Pieter_Filtered__joints_top_left.csv", 1);
+    vector<vector<float>> expected_angles_4 = read_csv("../coordinates/demo_data/arabic_2_Filtered__joints_top_right.csv", 1); //Confirm it executes on the page
     // Move to first starting position
     go_to_point(pos1);
     // Update starting point and execute
