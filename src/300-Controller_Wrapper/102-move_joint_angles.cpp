@@ -23,7 +23,6 @@ int main(int argc, char **argv)
     cout<<input_coordinates_file<<endl;
     vector<vector<float>> expected_angles = pen_pal.read_csv(input_coordinates_file, 1);
     vector<vector<float>> measured_joint_angles = pen_pal.move_cartesian(expected_angles, repeat, 180.0, 0.0, 90.0, true);
-    //cout<<expected_waypoints[0][1] <<endl;
 
 
     cout << "FIRST :" << expected_waypoints[0][1] << ", " << expected_waypoints[0][2] << ", " << expected_waypoints[0][3] << endl;
