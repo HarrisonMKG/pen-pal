@@ -17,6 +17,7 @@ int main(int argc, char **argv)
     int joint_string_idx = input_coordinates_file.find("__joints");
   	string original_cart_file = input_coordinates_file.substr(0,joint_string_idx);
     original_cart_file = original_cart_file + ".csv";
+
     cout<<original_cart_file<<endl;
     vector<vector<float>> expected_waypoints = pen_pal.read_csv(original_cart_file);
    cout<<input_coordinates_file<<endl;
