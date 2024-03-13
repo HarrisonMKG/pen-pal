@@ -21,8 +21,10 @@ int main(int argc, char **argv)
     cout<< "Calculating Plot:" <<endl;
     pen_pal.plot(expected_waypoints,measured_waypoints);
     vector<float> rms = pen_pal.rms_error(expected_waypoints,measured_waypoints); 
-    cout << "Spatial RMS Error:\t"<< rms[0] <<endl;
-    cout << "Velocity RMS Error:\t"<< rms[1] <<endl;
+    cout << "Spatial(X/Y Plane) RMS Error:\t"<< rms[0] <<endl;
+    cout << "Velocity RMS Expected:\t"<< rms[1] <<endl;
+    cout << "Velocity RMS Measured:\t"<< rms[2] <<endl;
+    cout << "Velocity RMS Error:\t"<< rms[3] <<endl;
 
     return 0;
 }

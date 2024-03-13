@@ -4,12 +4,29 @@ import time
 import numpy as np
 import statsmodels.api as sm
 from subprocess import call
+import matplotlib.pyplot as plt
+import argparse
+
 
 # Initialize the list to store coordinates and timestamps
 data = []
 
 # Function to track the laser
-def track_laser(video_path, output_csv):
+def lin_interporlate(start_point, end_point, num_points):
+    delta_time = (end_point[0] - start_point[0])/(num_points)
+    delta_x = (end_point[1] - start_point[1])/num_points
+    delta_y = (end_point[2] - start_point[2])/num_points
+    faux_z = 0.02
+
+    for i in range(1,num_points):
+        tmp_time = start_point[0] + delta_time * i 
+        tmp_x = start_point[1] + delta_x * i
+        tmp_y = start_point[2] + delta_y * i
+        data.append([tmp_time, tmp_x, tmp_y, faux_z])
+
+    return
+
+def track_laser(video_path, output_csv, num_points_interp):
     global data
     # Open the video
     cap = cv2.VideoCapture(video_path)
@@ -44,7 +61,7 @@ def track_laser(video_path, output_csv):
                 largest_contour = max(contours, key=cv2.contourArea)
                 M = cv2.moments(largest_contour)
                 if M["m00"] != 0:
-                    scaling_factor = 0.1  # Adjust this scaling factor as needed
+                    scaling_factor = 1  # Adjust this scaling factor as needed
                     cX = int(M["m10"] / M["m00"] * scaling_factor)
                     cY = int(M["m01"] / M["m00"] * scaling_factor)
                     # Save the timestamp and coordinates
@@ -55,8 +72,10 @@ def track_laser(video_path, output_csv):
                         first_measure = False
                     else:
                         time_elapsed = (curr_time - time_ref) / 1000
-                        data.append([time_elapsed, cX, cY, faux_z])
-                        count += 1
+                        lin_interporlate(data[-1], [time_elapsed, cX, cY, faux_z], num_points_interp)
+
+                    data.append([time_elapsed, cX, cY, faux_z])
+                    count += 1
                     
                     # Optionally, visualize the tracking
                     cv2.circle(frame, (cX, cY), 5, (255, 0, 0), -1)
@@ -86,12 +105,44 @@ def track_laser(video_path, output_csv):
     # Save the smoothed data to a CSV file
     df[['Time','X_smoothed', 'Y_smoothed', 'Faux_Z']].to_csv(output_csv, index=False, header=None)
     print(f"Smoothed data saved to {output_csv}")
+    graph(df['X_smoothed'],df['Y_smoothed'])
 
-# Example usage
-track_laser('./laser_check.mp4', 'laser_coordinates.csv')
+def graph(x_values,y_values):
+    # Plot scatter points
+    plt.scatter(x_values, y_values, color='blue', alpha=0.5)
 
-print("Generate IKs...")
-with open('gen_ik.sh', 'rb') as file:
-    script = file.read()
-rc = call(script, shell=True)
-print("IKs Generated")
+# Sort data by x-values
+    plt.plot(x_values, y_values, linestyle='-', color='red')
+
+# Add labels and title
+    plt.xlabel('X Axis')
+    plt.ylabel('Y Axis')
+    plt.title('Scatter Plot of Points with Lines')
+
+# Show grid
+    plt.grid(True)
+
+# Show the plot
+    plt.show()
+    
+
+if __name__ == "__main__":
+    # Create an argument parser
+    parser = argparse.ArgumentParser(description='Process data and plot smoothed curves.')
+
+    # Add arguments
+    parser.add_argument('input_video', type=str, help='Input MP4 file containing data')
+    parser.add_argument('-o','--output', type=str, default='laser_coordinates.csv', help='Output file to save the waypoints (default: laser_coordinates.csv)')
+    parser.add_argument('-i','--interpt', type=int, default=2, help='Number of points to linearly interporlate')
+    parser.add_argument('-f','--frac', type=float, default=0.1, help='Fraction of data used for smoothing')
+
+    # Parse arguments
+    args = parser.parse_args()
+
+    track_laser(args.input_video, args.output, args.interpt) 
+
+    print("Generate IKs...")
+    with open('gen_ik.sh', 'rb') as file:
+         script = file.read()
+    rc = call(script, shell=True)
+    print("IKs Generated")
