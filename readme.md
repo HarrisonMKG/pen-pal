@@ -95,3 +95,16 @@ Further arguements can also be passed:
 ./bin/300-Controller_Wrapper_100-Pen-Pal-Demonstration.exe  -g ../gain_values/gain_2.txt -c ../coordinates/line_X_up_down_short.csv -r Y
 
 ./bin/300-Controller_Wrapper_100-Pen-Pal-Demonstration.exe  -g ../gain_values/gain_2.txt -c ../coordinates/line_zig_zag.csv
+
+
+## Laser Tracking
+### Description
+This is a script for demo purposes only. The script will take a video of a laser pointer with no other light source on a flat source and output the following:
+- Time Tagged X,Y waypoints
+- IK Computation of waypoints
+- Graph of Waypoints
+### Usage
+`python laser_tracking.py <.mp4 of laser pointer video> -i <Number of points to be linearly interpolated (i<=1)>`
+### Considerations
+- Have no other light sources during recording (everything should be black but the red dot)
+- Use a red laser pointer
