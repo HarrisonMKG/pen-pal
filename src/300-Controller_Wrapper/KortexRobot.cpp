@@ -90,10 +90,10 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       first_pass = false;
     }
     
-    //   cout << "time exp: " << expected_data[i][0]*1000 << " time measure: " << measured_data[i][0];
-      
+      // *1000 for m->mm conversion
       float x_error = pow((expected_data[i][1] - measured_data[i][1])*1000,2);
       float y_error = pow((expected_data[i][2] - measured_data[i][2])*1000,2);
+
       float line_error = sqrt(x_error+y_error);
     
         /*
