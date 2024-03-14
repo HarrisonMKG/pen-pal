@@ -119,7 +119,7 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
   float rms_velocity_error = sqrt(velocity_error_sum/(measured_data.size()-1));
   float expected_end_time = expected_data[expected_data.size()-1][0]*1000;
 
-  float temporal_error = 1-(expected_end_time / (measured_data[measured_data.size()-1][0]));
+  float temporal_error = abs(1-(expected_end_time / (measured_data[measured_data.size()-1][0])));
 
   rms.push_back(rms_spatial);
   rms.push_back(rms_velocity_expected);
