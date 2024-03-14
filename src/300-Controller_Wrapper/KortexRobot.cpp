@@ -80,10 +80,10 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       
       //cout<<"EXPECTED X DIFF: " << setprecision(5) << x_diff_expected << " EXPECTED Y DIFF: " << setprecision(5) << y_diff_expected << " MEASURED X DIFF: " << setprecision(5) << x_diff_measured <<    " MEASURED Y DIFF: " << setprecision(5) << y_diff_measured << endl;
 
-    
+      cout << "Expected\t" << velocity_expected << "Measured:\t" <<velocity_measured << endl;
       float velocity_error = 0;
       if(velocity_expected != 0 && velocity_measured != 0)
-        float velocity_error = pow((1-(velocity_measured/velocity_expected)),2);
+         velocity_error = pow((1-(velocity_measured/velocity_expected)),2);
       velocity_error_sum += velocity_error;
      
     }
@@ -586,7 +586,7 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
                 lifted_flag = 1;
             }else{
                 if(offset < 0.003){
-                    offset += 0.00001;
+                    offset += 0.0002;
                 }  
             }
             point[2] = altered_origin[2] + offset;
@@ -610,7 +610,7 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         //use this to find the last couple points, and adjust them
         if (last == 1){
             for (int k = 1; k < 31; k++){
-                offset -= 0.00001;
+                offset -= 0.0001;
                 csv_points[i-k][3] = csv_points[i-k][3] -offset;
             }
             last = 0;
@@ -1077,11 +1077,24 @@ void KortexRobot::execute_demo() {
     string pos2 = "Demo_32_Bot_Left";
     string pos3 = "Demo_32_Top_Left";
     string pos4 = "Demo_32_Top_Right";
-    vector<vector<float>> expected_angles_1 = read_csv("../coordinates/demo_data/Harrison_Lift_Filtered__joints_bot_right.csv", 1);
-    vector<vector<float>> expected_angles_2 = read_csv("../coordinates/demo_data/Pen_Pal_lifted_downsampled_filtered__joints_bot_left.csv", 1);
-    vector<vector<float>> expected_angles_3 = read_csv("../coordinates/demo_data/Pieter_Filtered__joints_top_left.csv", 1);
-    vector<vector<float>> expected_angles_4 = read_csv("../coordinates/demo_data/arabic_2_Filtered__joints_top_right.csv", 1); //Confirm it executes on the page
+    // joaquin cursive, pen pal, hello_twice, pieter
+    vector<vector<float>> expected_angles_1 = read_csv("../coordinates/demo_data/Joaquin_Cursive_Filtered_V2__joints_bot_right.csv", 1);
+    vector<vector<float>> expected_angles_2 = read_csv("../coordinates/demo_data/Pen_Pal_with_lift_filtered_V2__joints_bot_left_new.csv", 1);
+    vector<vector<float>> expected_angles_3 = read_csv("../coordinates/demo_data/Hello_twice_Filtered_V2__joints_top_left.csv", 1);
+    // vector<vector<float>> expected_angles_4 = read_csv("../coordinates/demo_data/arabic_2_Filtered__joints_top_right.csv", 1); //Confirm it executes on the page
     // Move to first starting position
+
+    go_to_point(pos3);
+    vector<vector<float>> measured_joint_angles3 = KortexRobot::move_cartesian(expected_angles_3, false , 180.0, 0.0, 90.0, true);
+
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+
+    go_to_point(pos2);
+    vector<vector<float>> measured_joint_angles2 = KortexRobot::move_cartesian(expected_angles_2, false , 180.0, 0.0, 90.0, true);
+    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+
+
     go_to_point(pos1);
     // Update starting point and execute
     set_origin_point();
@@ -1093,18 +1106,10 @@ void KortexRobot::execute_demo() {
     cout << "DONE TRAJECTORY 1 MOVING TO SPOT 2" << endl;
     std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    go_to_point(pos2);
-    vector<vector<float>> measured_joint_angles2 = KortexRobot::move_cartesian(expected_angles_2, false , 180.0, 0.0, 90.0, true);
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
 
-    go_to_point(pos3);
-    vector<vector<float>> measured_joint_angles3 = KortexRobot::move_cartesian(expected_angles_3, false , 180.0, 0.0, 90.0, true);
+    // go_to_point(pos4);
+    // vector<vector<float>> measured_joint_angles4 = KortexRobot::move_cartesian(expected_angles_4, false , 180.0, 0.0, 90.0, true);
 
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
-
-    go_to_point(pos4);
-    vector<vector<float>> measured_joint_angles4 = KortexRobot::move_cartesian(expected_angles_4, false , 180.0, 0.0, 90.0, true);
-
-    std::this_thread::sleep_for(std::chrono::milliseconds(500));
+    // std::this_thread::sleep_for(std::chrono::milliseconds(500));
     
 }
