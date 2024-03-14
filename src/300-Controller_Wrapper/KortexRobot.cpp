@@ -584,7 +584,7 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
                 lifted_flag = 1;
             }else{
                 if(offset < 0.003){
-                    offset += 0.00001;
+                    offset += 0.0002;
                 }  
             }
             point[2] = altered_origin[2] + offset;
@@ -607,8 +607,8 @@ std::vector<std::vector<float>> KortexRobot::convert_csv_to_cart_wp(std::vector<
         }
         //use this to find the last couple points, and adjust them
         if (last == 1){
-            for (int k = 1; k < 31; k++){
-                offset -= 0.00001;
+            for (int k = 1; k < 151; k++){
+                offset -= 0.00002;
                 csv_points[i-k][3] = csv_points[i-k][3] -offset;
             }
             last = 0;
