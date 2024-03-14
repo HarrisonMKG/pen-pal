@@ -81,7 +81,9 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
       //cout<<"EXPECTED X DIFF: " << setprecision(5) << x_diff_expected << " EXPECTED Y DIFF: " << setprecision(5) << y_diff_expected << " MEASURED X DIFF: " << setprecision(5) << x_diff_measured <<    " MEASURED Y DIFF: " << setprecision(5) << y_diff_measured << endl;
 
     
-      float velocity_error = pow((velocity_expected - velocity_measured),2);
+      float velocity_error = 0;
+      if(velocity_expected != 0 && velocity_measured != 0)
+        float velocity_error = pow((1-(velocity_measured/velocity_expected)),2);
       velocity_error_sum += velocity_error;
      
     }
@@ -124,7 +126,7 @@ vector<float> KortexRobot::rms_error(vector<vector<float>> expected_data, vector
   rms.push_back(rms_spatial);
   rms.push_back(rms_velocity_expected);
   rms.push_back(rms_velocity_measured);
-  rms.push_back(rms_velocity_error);
+  rms.push_back(rms_velocity_error*100);
   rms.push_back(temporal_error*100);
 
   return rms; 
