@@ -71,11 +71,10 @@ Look at Kinova_Readme.md and the Readme.md file in api_cpp/examples folder for i
 Modify "coordinates.csv" in terms of:
 
 ```
-
-x_1,y1,z_1
-x_2,y_2,z_2
+time_1,x_1,y1,z_1
+time_2,x_2,y_2,z_2
 ...
-x_n,y_n,z_n
+time_n,x_n,y_n,z_n
 ```
 
 Executuion:
@@ -89,7 +88,6 @@ Further arguements can also be passed:
 -o,--output : provide output directory for log files
 -c,--coordiantes : provide csv coordiante data
 -g,--gain : provide file name for the gain values to be used for each PID controller
-
 ```
 
 ./bin/300-Controller_Wrapper_100-Pen-Pal-Demonstration.exe  -g ../gain_values/gain_2.txt -c ../coordinates/line_X_up_down_short.csv -r Y
