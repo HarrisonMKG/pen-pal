@@ -105,4 +105,4 @@ This is a script for demo purposes only. The script will take a video of a laser
 `python laser_tracking.py <.mp4 of laser pointer video> -i <Number of points to be linearly interpolated (i<=1)>`
 ### Considerations
 - Have no other light sources during recording (everything should be black but the red dot)
-- Use a red laser pointer
+- Use red laser pointer
