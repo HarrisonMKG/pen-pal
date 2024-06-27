@@ -1,5 +1,7 @@
-<h1>PEN-PAL<sup>®</sup> Using Kinova Kortex </h1>
+# PEN-PAL<sup>®</sup> Using Kinova Kortex
+
 ## Description
+
 This README should serve as a guide to use this repository, it will cover:
 
 + Cloning and setting up environment for the first time
