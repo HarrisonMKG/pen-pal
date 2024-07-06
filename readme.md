@@ -109,10 +109,15 @@ Further arguements can also be passed:
 -r,--repeat : (Y/N) Indicate if the system should repeat the trajectory once done **Note: this option should only be used for trajectories that end at the same point they start at, or else the transition wont be smooth**
 ```
 
+### Usage
+
+```
 ./bin/300-Controller_Wrapper_100-Pen-Pal-Demonstration.exe  -g ../gain_values/gain_2.txt -c ../coordinates/line_X_up_down_short.csv -r Y
+```
 
+```
 ./bin/300-Controller_Wrapper_100-Pen-Pal-Demonstration.exe  -g ../gain_values/gain_2.txt -c ../coordinates/line_zig_zag.csv
-
+```
 
 ### Existing Examples
 #### 100-Pen-Pal-Demonstration.cpp
